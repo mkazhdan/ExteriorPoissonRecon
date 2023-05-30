@@ -824,12 +824,12 @@ namespace Samples
 
 
 			}
-			else if (header == Header(HOPF_TORUS) ){
-				std::string type, n, l;
-				if (!std::getline(ss, type, ':')) ERROR_OUT("Could not read Hopf type n: ", str);
-				if (!std::getline(ss, n, ':')) ERROR_OUT("Could not read Hopf torus n: ", str);
-				if (!std::getline(ss, l, ':')) ERROR_OUT("Could not read Hopf torus l: ", str);
-				sampler = new HopfTorusSampler(std::stoi(type), std::stoi(n), std::stod(l));
+			else if( header==Header(HOPF_TORUS) )
+			{
+				std::string n, l;
+				if( !std::getline( ss , n , ':' ) ) ERROR_OUT( "Could not read Hopf torus nodes: " , str );
+				if( !std::getline( ss , l , ':' ) ) ERROR_OUT( "Could not read Hopf torus amplitude: " , str );
+				sampler = new HopfTorusSampler( 1 , std::stoi(n) , std::stod(l) );
 			}
 			else if( header==Header(KY)  ) 
 			{

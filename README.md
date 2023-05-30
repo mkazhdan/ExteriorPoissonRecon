@@ -40,14 +40,14 @@ Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
 <dd>
 This string specifies the type of geometry the points should be sampled from. Supported types include:
 <UL>
-<LI><code>line_segent</code>:
-<LI><code>circle</code>:
-<LI><code>link</code>:
-<LI><code>spiral:&lt;r&gt;</code>:
-<LI><code>torus_knot:&lt;p&gt;:&lt;q&gt;</code>:
-<LI><code>borromean_rings</code>:
-<LI><code>clifford_torus</code>:
-<LI><code>hopf_torus:&lt;type&gt;:&lt;n&gt;:&lt;l&gt;</code>:
+<LI><code>line_segment</code>: Points lie on a (straight) line segment
+<LI><code>circle</code>: Points lie on a circle
+<LI><code>link</code>: Points lie on two interlocking circles
+<LI><code>spiral:&lt;r&gt;</code>: Points lie on a spiral with <code>r</code> rotations
+<LI><code>torus_knot:&lt;p&gt;:&lt;q&gt;</code>: Points lie on a (<code>p</code>,<code>q</code>) torus-knot 
+<LI><code>borromean_rings</code>: Points lie on interlocking Borromean rings
+<LI><code>clifford_torus</code>: Points lie on the Clifford torus
+<LI><code>hopf_torus:&lt;n&gt;:&lt;a&gt;</code>: Points lie on the Hopf torus with <code>n</code> nodes and amplitude <code>a</code>. (Reasonable values for amplitude are in the range [0.1,0.5].
 </UL>
 
 
