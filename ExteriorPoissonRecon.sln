@@ -1,0 +1,112 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33424.131
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Include", "Include", "{E1FDDC83-5E44-427B-8FE7-A6FF90AE20BC}"
+	ProjectSection(SolutionItems) = preProject
+		Include\Hat.h = Include\Hat.h
+		Include\Hat.inl = Include\Hat.inl
+		Include\MG.h = Include\MG.h
+		Include\Samples.h = Include\Samples.h
+		Include\SystemEnergy.h = Include\SystemEnergy.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misha", "Misha", "{B00E01A4-438D-4163-96AF-C8915B0D4F8F}"
+	ProjectSection(SolutionItems) = preProject
+		Misha\Algebra.h = Misha\Algebra.h
+		Misha\Array.h = Misha\Array.h
+		Misha\Array.inl = Misha\Array.inl
+		Misha\CmdLineParser.h = Misha\CmdLineParser.h
+		Misha\CmdLineParser.inl = Misha\CmdLineParser.inl
+		Misha\Exceptions.h = Misha\Exceptions.h
+		Misha\Geometry.h = Misha\Geometry.h
+		Misha\Geometry.inl = Misha\Geometry.inl
+		Misha\IsoSurface3D.h = Misha\IsoSurface3D.h
+		Misha\IsoSurface3D.inl = Misha\IsoSurface3D.inl
+		Misha\MarchingCubes.h = Misha\MarchingCubes.h
+		Misha\MarchingCubes.inl = Misha\MarchingCubes.inl
+		Misha\MarchingSimplices.h = Misha\MarchingSimplices.h
+		Misha\Miscellany.h = Misha\Miscellany.h
+		Misha\Ply.h = Misha\Ply.h
+		Misha\Ply.inl = Misha\Ply.inl
+		Misha\PlyFile.h = Misha\PlyFile.h
+		Misha\PlyFile.inl = Misha\PlyFile.inl
+		Misha\PlyVertexData.h = Misha\PlyVertexData.h
+		Misha\PlyVertexData.inl = Misha\PlyVertexData.inl
+		Misha\Poly34.h = Misha\Poly34.h
+		Misha\Poly34.inl = Misha\Poly34.inl
+		Misha\Polynomial.h = Misha\Polynomial.h
+		Misha\Polynomial.inl = Misha\Polynomial.inl
+		Misha\RegularGrid.h = Misha\RegularGrid.h
+		Misha\RegularGrid.inl = Misha\RegularGrid.inl
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExteriorPoissonRecon", "ExteriorPoissonRecon\ExteriorPoissonRecon.vcxproj", "{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Visualize3D", "Visualize3D\Visualize3D.vcxproj", "{75A38CEE-F857-4BD2-A699-4F805055B98B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Visualize4D", "Visualize4D\Visualize4D.vcxproj", "{90ABC84D-F0C5-4646-BD90-9577B5D3635E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample", "Sample\Sample.vcxproj", "{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Autodiff", "Autodiff", "{3649876F-00B5-4E4D-BDD6-EDD439D7BA48}"
+	ProjectSection(SolutionItems) = preProject
+		Misha\AutoDiff\AutoDiff.h = Misha\AutoDiff\AutoDiff.h
+		Misha\AutoDiff\AutoDiff.Transcendental.inc = Misha\AutoDiff\AutoDiff.Transcendental.inc
+		Misha\AutoDiff\MultiDimensionalArray.h = Misha\AutoDiff\MultiDimensionalArray.h
+		Misha\AutoDiff\Tensors.h = Misha\AutoDiff\Tensors.h
+		Misha\AutoDiff\UIntPack.h = Misha\AutoDiff\UIntPack.h
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Debug|x64.ActiveCfg = Debug|x64
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Debug|x64.Build.0 = Debug|x64
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Debug|x86.ActiveCfg = Debug|Win32
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Debug|x86.Build.0 = Debug|Win32
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Release|x64.ActiveCfg = Release|x64
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Release|x64.Build.0 = Release|x64
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Release|x86.ActiveCfg = Release|Win32
+		{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}.Release|x86.Build.0 = Release|Win32
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Debug|x64.ActiveCfg = Debug|x64
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Debug|x64.Build.0 = Debug|x64
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Debug|x86.ActiveCfg = Debug|Win32
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Debug|x86.Build.0 = Debug|Win32
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Release|x64.ActiveCfg = Release|x64
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Release|x64.Build.0 = Release|x64
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Release|x86.ActiveCfg = Release|Win32
+		{75A38CEE-F857-4BD2-A699-4F805055B98B}.Release|x86.Build.0 = Release|Win32
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Debug|x64.ActiveCfg = Debug|x64
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Debug|x64.Build.0 = Debug|x64
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Debug|x86.ActiveCfg = Debug|Win32
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Debug|x86.Build.0 = Debug|Win32
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Release|x64.ActiveCfg = Release|x64
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Release|x64.Build.0 = Release|x64
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Release|x86.ActiveCfg = Release|Win32
+		{90ABC84D-F0C5-4646-BD90-9577B5D3635E}.Release|x86.Build.0 = Release|Win32
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Debug|x64.ActiveCfg = Debug|x64
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Debug|x64.Build.0 = Debug|x64
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Debug|x86.ActiveCfg = Debug|Win32
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Debug|x86.Build.0 = Debug|Win32
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Release|x64.ActiveCfg = Release|x64
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Release|x64.Build.0 = Release|x64
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Release|x86.ActiveCfg = Release|Win32
+		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3649876F-00B5-4E4D-BDD6-EDD439D7BA48} = {B00E01A4-438D-4163-96AF-C8915B0D4F8F}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E4778AFF-E88B-4054-B964-1EE34E34EEBD}
+	EndGlobalSection
+EndGlobal

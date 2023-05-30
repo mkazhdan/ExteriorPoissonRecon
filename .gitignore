@@ -1,0 +1,8 @@
+.vs/
+x64/
+*.log
+*.tlog
+*.pdb
+*.ipdb
+*.filters
+*.user
