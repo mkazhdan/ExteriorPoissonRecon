@@ -36,8 +36,21 @@ This software supports reconstruction of co-dimension two manifolds.
 <font size="+1"><b>Sample</b></font>:
 Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
 </SUMMARY>
-<dt><b>--in</b> &lt;<i>input points</i>&gt;
-</dt><dd> This string is the name of the file from which the point set will be read.<br>
+<dt><b>--type</b> &lt;<i>input geometry type</i>&gt;</dt>
+<dd>
+This string specifies the type of geometry the points should be sampled from. Supported types include:
+<UL>
+<LI><code>line_segent</code>:
+<LI><code>circle</code>:
+<LI><code>link</code>:
+<LI><code>spiral:&lt;r&gt;</code>:
+<LI><code>torus_knot:&lt;p&gt;:&lt;q&gt;</code>:
+<LI><code>borromean_rings</code>:
+<LI><code>clifford_torus</code>:
+<LI><code>hopf_torus:&lt;type&gt;:&lt;n&gt;:&lt;l&gt;</code>:
+</UL>
+
+
 If the file extension is <i>.ply</i>, the file should be in
 <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the list of oriented
 vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and
