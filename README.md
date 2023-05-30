@@ -33,11 +33,8 @@ This software supports reconstruction of co-dimension two manifolds.
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>PoissonRecon</b></font>:
-Reconstructs a triangle mesh from a set of oriented 3D points by solving a Poisson system (solving a 3D Laplacian system with positional value constraints) <a href="https://www.cs.jhu.edu/~misha/MyPapers/SGP06.pdf">[Kazhdan, Bolitho, and Hoppe, 2006]</a>,
-<a href="https://www.cs.jhu.edu/~misha/MyPapers/ToG13.pdf">[Kazhdan and Hoppe, 2013]</a>,
-<a href="https://www.cs.jhu.edu/~misha/MyPapers/CGF18.pdf">[Kazhdan and Hoppe, 2018]</a>,
-<a href="https://www.cs.jhu.edu/~misha/MyPapers/SGP20.pdf">[Kazhdan, Chuang, Rusinkiewicz, and Hoppe, 2020]</a>
+<font size="+1"><b>Sample</b></font>:
+Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
 </SUMMARY>
 <dt><b>--in</b> &lt;<i>input points</i>&gt;
 </dt><dd> This string is the name of the file from which the point set will be read.<br>
