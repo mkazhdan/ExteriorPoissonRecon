@@ -36,7 +36,8 @@ This software supports reconstruction of co-dimension two manifolds.
 <font size="+1"><b>Sample</b></font>:
 Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
 </SUMMARY>
-<dt><b>--type</b> &lt;<i>input geometry type</i>&gt;</dt>
+<dt>
+<b>--type</b> &lt;<i>input geometry type</i>&gt;</dt>
 <dd>
 This string specifies the type of geometry the points should be sampled from. Supported types include:
 <UL>
@@ -47,17 +48,16 @@ This string specifies the type of geometry the points should be sampled from. Su
 <LI><code>torus_knot:&lt;p&gt;:&lt;q&gt;</code>: Points lie on a (<code>p</code>,<code>q</code>) torus-knot 
 <LI><code>borromean_rings</code>: Points lie on interlocking Borromean rings
 <LI><code>clifford_torus</code>: Points lie on the Clifford torus
-<LI><code>hopf_torus:&lt;n&gt;:&lt;a&gt;</code>: Points lie on the Hopf torus with <code>n</code> nodes and amplitude <code>a</code>. (Reasonable values for amplitude are in the range [0.1,0.5].
+<LI><code>hopf_torus:&lt;n&gt;:&lt;a&gt;</code>: Points lie on the Hopf torus with <code>n</code> nodes and amplitude <code>a</code>. (Reasonable values for amplitude are in the range [0.1,0.5].)
 </UL>
 </dd>
 
-<dt>[<b>--out &lt;output file name&gt;</B>]
-<dd>This string value specifies the name of the file to which the samples will be written.<br>
+<dt>[<b>--out &lt;output file name&gt;</B>]</dt>
+<dd>
+This string value specifies the name of the file to which the samples will be written.<br>
 The file will be written in out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
 with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i> and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
 encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.
-</dd>
-
 </dd>
 
 <dt>[<b>--res</b> &lt;<i>sample resolution</i>&gt;]</dt>
