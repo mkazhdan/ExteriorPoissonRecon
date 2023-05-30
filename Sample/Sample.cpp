@@ -43,14 +43,14 @@ DAMAGE.
 
 Misha::CmdLineParameter< std::string > Out( "out" );
 Misha::CmdLineParameter< std::string > SampleType( "type" );
-Misha::CmdLineParameter< unsigned int > SampleCount( "count" , 1024 );
+Misha::CmdLineParameter< unsigned int > SampleResolution( "res" , 1024 );
 Misha::CmdLineParameter< double > AngularNoise( "aNoise" , 0. ) , PositionalNoise( "pNoise" , 0. );
 Misha::CmdLineReadable RegularSample( "regular" ) , NoNormalize( "noNormalize" );
 
 Misha::CmdLineReadable* params[] =
 {
 	&SampleType ,
-	&SampleCount ,
+	&SampleResolution ,
 	&Out ,
 	&RegularSample ,
 	&AngularNoise ,
@@ -65,7 +65,7 @@ void ShowUsage( const char* ex )
 	printf( "\t --%s <sample type>\n" , SampleType.name.c_str() );
 	for( unsigned int i=0 ; i<Samples::  Curve::TypeCount ; i++ ) printf( "\t\t%s\n" , Samples::  Curve::Descriptions[i].c_str() );
 	for( unsigned int i=0 ; i<Samples::Surface::TypeCount ; i++ ) printf( "\t\t%s\n" , Samples::Surface::Descriptions[i].c_str() );
-	printf( "\t[--%s <curve samples>=%d]\n" , SampleCount.name.c_str() , SampleCount.value );
+	printf( "\t[--%s <sample resolution>=%d]\n" , SampleResolution.name.c_str() , SampleResolution.value );
 	printf( "\t[--%s <max angular noise>=%f]\n" , AngularNoise.name.c_str() , AngularNoise.value );
 	printf( "\t[--%s <positional noise sigma (in voxels)>=%f]\n" , PositionalNoise.name.c_str() , PositionalNoise.value );
 	printf( "\t[--%s <output file>]\n" , Out.name.c_str() );
@@ -211,10 +211,10 @@ int main( int argc , char* argv[] )
 		return EXIT_SUCCESS;
 	}
 
-	try{ Execute< 3 >( Samples::Curve::GetSamples( SampleCount.value , SampleType.value , !RegularSample.set ) ); }
+	try{ Execute< 3 >( Samples::Curve::GetSamples( SampleResolution.value , SampleType.value , !RegularSample.set ) ); }
 	catch( const Samples::InvalidSamplerException & )
 	{
-		try{ Execute< 4 >( Samples::Surface::GetSamples( SampleCount.value , SampleType.value , !RegularSample.set ) ); }
+		try{ Execute< 4 >( Samples::Surface::GetSamples( SampleResolution.value , SampleType.value , !RegularSample.set ) ); }
 		catch( const Samples::InvalidSamplerException & ){ ERROR_OUT( "Could not parse sample type: " , SampleType.value ); }
 	}
 
