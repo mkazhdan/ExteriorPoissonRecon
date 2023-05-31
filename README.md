@@ -53,7 +53,7 @@ Reasonable values for amplitude are in the range [0.1,0.5].
 </UL>
 </dd>
 
-<dt>[<b>--out &lt;output file name&gt;</B>]</dt>
+<dt>[<b>--out</b> &lt;<i>output file name</i>&gt;]</dt>
 <dd>
 This string value specifies the name of the file to which the samples will be written.<br>
 The file will be written in out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
@@ -98,38 +98,38 @@ Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
 This integer/string pair value specifies the dimension in which the points are embedded and the name of the file containing the points.
 </dd>
 
-<dt><b>[--out</b> &lt;<i>grid header</i>&gt;</dt>]
+<dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
 <dd>
 This string value specifies the header for the grid files describing the estimated density distribution and the reconstructed implicit function.<br>
 The density will be output to the file <code>&lt;grid header&gt;.density.grid</code> and the reconstructed implicit function will be output to the file <code>&lt;grid header&gt;.grid</code>.
 </dd>
 
-<dt>[<b>--depth &lt;reconstruction depth&gt;</B>]</dt>
+<dt>[<b>--depth</b> &lt;<i>reconstruction depth</i>&gt;]</dt>
 <dd>
 This integer value is the depth of the grid that will be used for reconstruction.
 Running at depth <i>d</i> corresponds to solving on a grid whose resolution is than <i>2^D x 2^d x ... </i>.<br>
 The default value for this parameter is 5.
 </dd>
 
-<dt>[<b>--sWeight &lt;screening weight&gt;</B>]</dt>
+<dt>[<b>--sWeight</b> &lt;<i>screening weight</i>&gt;]</dt>
 <dd>
 This floating point value is the screening weight used for reconstruction.<br>
 The default value for this parameter is 50.
 </dd>
 
-<dt>[<b>--dWeight &lt;Dirichlet weight&gt;</B>]</dt>
+<dt>[<b>--dWeight</b> &lt;<i>Dirichlet weight</i>&gt;]</dt>
 <dd>
 This floating point value is the Dirichlet weight used for reconstruction.<br>
 The default value for this parameter is 0.003125.
 </dd>
 
-<dt>[<B>--scale &lt;scale factor&gt;]</dt>
+<dt>[<b>--scale</b> &lt;<i>scale factor</i>&gt;]</dt>
 <dd>
 This floating point value specifies the ratio between the diameter of the cube used for reconstruction and the diameter of the samples' bounding cube.<br>
 The default value is 1.1.
 </dd>
 
-<dt>[<b>--verbose &lt;verbosity&gt;</b>]
+<dt>[<b>--verbose</b> &lt;<i>verbosity</i>&gt;</b>]
 <dd>
 This integer value specifies the level of verbosity of the executable's output to the command prompt.
 <UL>
