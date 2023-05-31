@@ -65,17 +65,17 @@ const std::string CurvatureNames[] =
 const double DefaultStereographic[] = { 1 , 2 , 3 , 4 };
 
 Misha::CmdLineParameter< std::string > In( "in" ) , OutHeader( "out" ) , Density( "density" );
-Misha::CmdLineParameter< double > Trim( "trim" , 0. ) , CurvatureThreshold( "cThreshold" , 90. );
+Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) , CurvatureThreshold( "cThreshold" , 90. );
 Misha::CmdLineParameterArray< double , Dim > Stereographic( "stereo" , DefaultStereographic );
 Misha::CmdLineParameter< int > CurvatureType( "cType" , CURVATURE_INTEGRATED_GAUSSIAN );
-Misha::CmdLineReadable Normalize( "normalize" ) , NoOrient( "noOrient" ) , Verbose( "verbose" ) , VoxelCoordinates( "vCoordinates" ) , AbsoluteCurvature( "abs" ) , TrimComponent( "trimComponent" );
+Misha::CmdLineReadable Normalize( "normalize" ) , NoOrient( "noOrient" ) , Verbose( "verbose" ) , VoxelCoordinates( "vCoordinates" ) , AbsoluteCurvature( "abs" );
 
 Misha::CmdLineReadable* params[] =
 {
 	&In ,
 	&OutHeader ,
 	&Density ,
-	&Trim ,
+	&TrimDensity ,
 	&Normalize ,
 	&Stereographic ,
 	&CurvatureThreshold ,
@@ -83,7 +83,6 @@ Misha::CmdLineReadable* params[] =
 	&AbsoluteCurvature ,
 	&CurvatureType ,
 	&VoxelCoordinates ,
-	&TrimComponent ,
 	&Verbose ,
 	NULL
 };
@@ -94,7 +93,7 @@ void ShowUsage( const char* ex )
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
 	printf( "\t[--%s <output header>]\n" , OutHeader.name.c_str() );
 	printf( "\t[--%s <density grid>]\n" , Density.name.c_str() );
-	printf( "\t[--%s <trim value>=%f]\n" , Trim.name.c_str() , Trim.value );
+	printf( "\t[--%s <trim value>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
 	printf( "\t[--%s <stereographic projection axis>]\n" , Stereographic.name.c_str() );
 	printf( "\t[--%s <curvature threshold (in degrees)>=%f]\n" , CurvatureThreshold.name.c_str() , CurvatureThreshold.value );
 	printf( "\t[--%s <curvature type>=%d]\n" , CurvatureType.name.c_str() , CurvatureType.value );
@@ -103,7 +102,6 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
 	printf( "\t[--%s]\n" , AbsoluteCurvature.name.c_str() );
 	printf( "\t[--%s]\n" , VoxelCoordinates.name.c_str() );
-	printf( "\t[--%s]\n" , TrimComponent.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
@@ -235,42 +233,26 @@ int main( int argc , char* argv[] )
 		std::cout << "Curvature maximum: "   << max << std::endl;
 	}
 
-	if( Density.set && Trim.value>0 )
+	if( Density.set && TrimDensity.value>0 )
 	{
-		if( TrimComponent.set )
+		std::vector< SimplexIndex< Dim-CoDim , unsigned int > > temp;
+		std::vector< std::vector< size_t > > components = MarchingSimplices::FaceAdjacentConnectedComponents( levelSet.simplexIndices );
+		std::cout << "Components: " << components.size() << std::endl;
+		for( unsigned int i=0 ; i<components.size() ; i++ )
 		{
-			std::vector< SimplexIndex< Dim-CoDim , unsigned int > > temp;
-			std::vector< std::vector< size_t > > components = MarchingSimplices::FaceAdjacentConnectedComponents( levelSet.simplexIndices );
-			std::cout << "Components: " << components.size() << std::endl;
-			for( unsigned int i=0 ; i<components.size() ; i++ )
-			{
-				double maxDensity = 0;
-				for( unsigned int j=0 ; j<components[i].size() ; j++ ) for( unsigned int v=0 ; v<=(Dim-CoDim) ; v++ )
-					maxDensity = std::max< double >( maxDensity , density( levelSet.vertices[ levelSet.simplexIndices[ components[i][j] ][v] ] ) );
+			double maxDensity = 0;
+			for( unsigned int j=0 ; j<components[i].size() ; j++ ) for( unsigned int v=0 ; v<=(Dim-CoDim) ; v++ )
+				maxDensity = std::max< double >( maxDensity , density( levelSet.vertices[ levelSet.simplexIndices[ components[i][j] ][v] ] ) );
 
-				if( Verbose.set ) std::cout << "Max Density[ " << i << " ] " << maxDensity << std::endl;
+			if( Verbose.set ) std::cout << "Max Density[ " << i << " ] " << maxDensity << std::endl;
 
-				if( maxDensity>Trim.value )
-				{
-					temp.reserve( temp.size() + components[i].size() );
-					for( unsigned int j=0 ; j<components[i].size() ; j++ ) temp.push_back( levelSet.simplexIndices[ components[i][j] ] );
-				}
-			}
-			levelSet.simplexIndices = temp;
-		}
-		else
-		{
-			for( unsigned int i=(unsigned int)levelSet.simplexIndices.size() ; i>0 ; i-- )
+			if( maxDensity>TrimDensity.value )
 			{
-				bool remove = true;
-				for( unsigned int j=0 ; j<=(Dim-CoDim) ; j++ ) if( density( levelSet.vertices[ levelSet.simplexIndices[i-1][j] ] )>Trim.value ) remove = false;
-				if( remove )
-				{
-					levelSet.simplexIndices[i-1] = levelSet.simplexIndices.back();
-					levelSet.simplexIndices.pop_back();
-				}
+				temp.reserve( temp.size() + components[i].size() );
+				for( unsigned int j=0 ; j<components[i].size() ; j++ ) temp.push_back( levelSet.simplexIndices[ components[i][j] ] );
 			}
 		}
+		levelSet.simplexIndices = temp;
 	}
 
 	for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );

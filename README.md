@@ -55,24 +55,25 @@ Reasonable values for amplitude are in the range [0.1,0.5].
 
 <dt>[<b>--out</b> &lt;<i>output file name</i>&gt;]</dt>
 <dd>
-This string value specifies the name of the file to which the samples will be written.<br>
-The file will be written in out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
+This optional string value specifies the name of the file to which the samples will be written.<br>
+The file will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
 with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i> and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
-encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.
+encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.<br>
+If this argument is not provided, no output is generated.
 </dd>
 
 <dt>[<b>--res</b> &lt;<i>sample resolution</i>&gt;]</dt>
-<dd> This integer value specifies the resolution of the sampling.<BR>
+<dd> This optional integer value specifies the resolution of the sampling.<BR>
 The default value for this parameter is 1024.
 </dd>
 
 <dt>[<b>--aNoise</b> &lt;<i>angular noise</i>&gt;]</dt>
-<dd> This floating point value specifies the maximum amount of noise in the samples' orientations (in units of radians).<BR>
+<dd> This optional floating point value specifies the maximum amount of noise in the samples' orientations (in units of radians).<BR>
 The default value for this parameter is 0.
 </dd>
 
 <dt>[<b>--pNoise</b> &lt;<i>positional noise</i>&gt;]</dt>
-<dd> This floating point value specifies the maximum amount of noise in the samples' positions (in units of voxels).<BR>
+<dd> This optional floating point value specifies the maximum amount of noise in the samples' positions (in units of voxels).<BR>
 The default value for this parameter is 0.
 </dd>
 
@@ -90,7 +91,7 @@ The default value for this parameter is 0.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>ExteriorPoissonRecon</b></font>:
-Reconstructs a co-dimension two manifold from a sampling of points and frames (encoded as the entries of a skew-symmetric matrix).
+Reconstructs an implicit function, sampled over a regular grid with two values per grid cell, from a sampling of points and frames (encoded as the entries of a skew-symmetric matrix).
 </SUMMARY>
 
 <dt><b>--in</b> &lt;<i>dimension, input points and frames</i>&gt;</dt>
@@ -100,38 +101,39 @@ This integer/string pair value specifies the dimension in which the points are e
 
 <dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
 <dd>
-This string value specifies the header for the grid files describing the estimated density distribution and the reconstructed implicit function.<br>
-The density will be output to the file <code>&lt;grid header&gt;.density.grid</code> and the reconstructed implicit function will be output to the file <code>&lt;grid header&gt;.grid</code>.
+This optional string value specifies the header for the grid files describing the estimated density distribution and the reconstructed implicit function.<br>
+The density will be output to the file <code>&lt;grid header&gt;.density.grid</code> and the reconstructed implicit function will be output to the file <code>&lt;grid header&gt;.grid</code>.<br>
+If this argument is not provided, no output is generated.
 </dd>
 
 <dt>[<b>--depth</b> &lt;<i>reconstruction depth</i>&gt;]</dt>
 <dd>
-This integer value is the depth of the grid that will be used for reconstruction.
+This optional integer value is the depth of the grid that will be used for reconstruction.
 Running at depth <i>d</i> corresponds to solving on a grid whose resolution is than <i>2^D x 2^d x ... </i>.<br>
 The default value for this parameter is 5.
 </dd>
 
 <dt>[<b>--sWeight</b> &lt;<i>screening weight</i>&gt;]</dt>
 <dd>
-This floating point value is the screening weight used for reconstruction.<br>
+This optional floating point value is the screening weight used for reconstruction.<br>
 The default value for this parameter is 50.
 </dd>
 
 <dt>[<b>--dWeight</b> &lt;<i>Dirichlet weight</i>&gt;]</dt>
 <dd>
-This floating point value is the Dirichlet weight used for reconstruction.<br>
+This optional floating point value is the Dirichlet weight used for reconstruction.<br>
 The default value for this parameter is 0.003125.
 </dd>
 
 <dt>[<b>--scale</b> &lt;<i>scale factor</i>&gt;]</dt>
 <dd>
-This floating point value specifies the ratio between the diameter of the cube used for reconstruction and the diameter of the samples' bounding cube.<br>
+This optional floating point value specifies the ratio between the diameter of the cube used for reconstruction and the diameter of the samples' bounding cube.<br>
 The default value is 1.1.
 </dd>
 
 <dt>[<b>--verbose</b> &lt;<i>verbosity</i>&gt;</b>]
 <dd>
-This integer value specifies the level of verbosity of the executable's output to the command prompt.
+This optional integer value specifies the level of verbosity of the executable's output to the command prompt.
 <UL>
 <LI>0: No ooutput
 <LI>1: Global residual error
@@ -150,54 +152,43 @@ This integer value specifies the level of verbosity of the executable's output t
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>Visualize3D</b></font>:
-Reconstructs a co-dimension two manifold from a sampling of points and frames (encoded as the entries of a skew-symmetric matrix).
+Extracts a curve from the reconstructed implicit function.
 </SUMMARY>
 
-<dt><b>--in</b> &lt;<i>dimension, input points and frames</i>&gt;</dt>
+<dt><b>--in</b> &lt;<i>implicit grid</i>&gt;</dt>
 <dd>
-This integer/string pair value specifies the dimension in which the points are embedded and the name of the file containing the points.
+This string value is the file-name of the grid sampling the reconstructed implicit function.
 </dd>
 
-<dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
+<dt>[<b>--density</b> &lt;<i>density grid</i>&gt;]</dt>
 <dd>
-This string value specifies the header for the grid files describing the estimated density distribution and the reconstructed implicit function.<br>
-The density will be output to the file <code>&lt;grid header&gt;.density.grid</code> and the reconstructed implicit function will be output to the file <code>&lt;grid header&gt;.grid</code>.
+This optional string value is the file-name of the grid sampling the density values.<br>
+If this argument is not provided, no density-based trimming is performed.
 </dd>
 
-<dt>[<b>--depth</b> &lt;<i>reconstruction depth</i>&gt;]</dt>
+<dt>[<b>--out</b> &lt;<i>geometry header</i>&gt;]</dt>
 <dd>
-This integer value is the depth of the grid that will be used for reconstruction.
-Running at depth <i>d</i> corresponds to solving on a grid whose resolution is than <i>2^D x 2^d x ... </i>.<br>
-The default value for this parameter is 5.
+This optional string value specifies the header for the geometry.<br>
+The zero level-sets of the two implicit functions will be output to the file <code>&lt;geometry header&gt;.ply</code>,
+the dilated curve will be output to <code>&lt;geometry header&gt;</code>.tubular.ply,
+and the curve itself will be output to the file <code>&lt;geometry header&gt;.lns</code>.<br>
+The first two files will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, with the first outputting vertices with color.
+The last file will be a raw ASCII file with six floating point values per line, representing the set of edges comprising the curve.<br>
+If this argument is not provided, no output is generated.
 </dd>
 
-<dt>[<b>--sWeight</b> &lt;<i>screening weight</i>&gt;]</dt>
+<dt>[<b>--tubular</b> &lt;<i>tubular radius</i>&gt;]</dt>
 <dd>
-This floating point value is the screening weight used for reconstruction.<br>
-The default value for this parameter is 50.
+This optional floating point value specifies the radius of the dilated curve in units of voxels.<br>
+If the value is not positive, the dilated curve will not be output.<br>
+The default value for this argument is 0.5.
 </dd>
 
-<dt>[<b>--dWeight</b> &lt;<i>Dirichlet weight</i>&gt;]</dt>
+<dt>[<b>--verbose</b>]</dt>
 <dd>
-This floating point value is the Dirichlet weight used for reconstruction.<br>
-The default value for this parameter is 0.003125.
+Enabling this flag provides a more verbose description of the running times and memory usages of individual components of the curve extraction.
 </dd>
 
-<dt>[<b>--scale</b> &lt;<i>scale factor</i>&gt;]</dt>
-<dd>
-This floating point value specifies the ratio between the diameter of the cube used for reconstruction and the diameter of the samples' bounding cube.<br>
-The default value is 1.1.
-</dd>
-
-<dt>[<b>--verbose</b> &lt;<i>verbosity</i>&gt;</b>]
-<dd>
-This integer value specifies the level of verbosity of the executable's output to the command prompt.
-<UL>
-<LI>0: No ooutput
-<LI>1: Global residual error
-<LI>2: Residual error after each level of the multigrid hierarchy 
-</UL>
-</dd>
 
 </DETAILS>
 </dl>

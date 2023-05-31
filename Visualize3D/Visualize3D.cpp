@@ -44,8 +44,8 @@ static const unsigned int Dim = 3;
 static const unsigned int CoDim = 2;
 
 Misha::CmdLineParameter< std::string > In( "in" ) , OutHeader( "out" ) , Density( "density" );
-Misha::CmdLineParameter< double > Trim( "trim" , 0. ) , Tubular( "tubular" , 0.5 );
-Misha::CmdLineReadable NoOrient( "noOrient" ) , VoxelCoordinates( "vCoordinates" ) , Verbose( "verbose" ) , TrimComponent( "trimComponent" );
+Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) , Tubular( "tubular" , 0.5 );
+Misha::CmdLineReadable NoOrient( "noOrient" ) , VoxelCoordinates( "vCoordinates" ) , Verbose( "verbose" );
 
 Misha::CmdLineReadable* params[] =
 {
@@ -53,10 +53,9 @@ Misha::CmdLineReadable* params[] =
 	&OutHeader ,
 	&Density ,
 	&Tubular ,
-	&Trim ,
+	&TrimDensity ,
 	&NoOrient ,
 	&VoxelCoordinates ,
-	&TrimComponent ,
 	&Verbose ,
 	NULL
 };
@@ -67,11 +66,10 @@ void ShowUsage( const char* ex )
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
 	printf( "\t[--%s <input density>]\n" , Density.name.c_str() );
 	printf( "\t[--%s <output header>]\n" , OutHeader.name.c_str() );
-	printf( "\t[--%s <trimming density>]\n" , Trim.name.c_str() );
-	printf( "\t[--%s <tubular radius (should be around 0.5)>]\n" , Tubular.name.c_str() );
+	printf( "\t[--%s <trimming density>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
+	printf( "\t[--%s <tubular radius>=%f]\n" , Tubular.name.c_str() , Tubular.value );
 	printf( "\t[--%s]\n" , VoxelCoordinates.name.c_str() );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
-	printf( "\t[--%s]\n" , TrimComponent.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
@@ -207,40 +205,24 @@ int main( int argc , char* argv[] )
 		std::cout << "Oriented: " << timer.elapsed() << " (s)" << std::endl;
 	}
 
-	if( Density.set && Trim.value>0 )
+	if( Density.set && TrimDensity.value>0 )
 	{
-		if( TrimComponent.set )
+		std::vector< SimplexIndex< Dim-CoDim , unsigned int > > temp;
+		std::vector< std::vector< size_t > > components = MarchingSimplices::FaceAdjacentConnectedComponents( levelSet.simplexIndices );
+		for( unsigned int i=0 ; i<components.size() ; i++ )
 		{
-			std::vector< SimplexIndex< Dim-CoDim , unsigned int > > temp;
-			std::vector< std::vector< size_t > > components = MarchingSimplices::FaceAdjacentConnectedComponents( levelSet.simplexIndices );
-			for( unsigned int i=0 ; i<components.size() ; i++ )
+			double maxDensity = 0;
+			for( unsigned int j=0 ; j<components[i].size() ; j++ ) for( unsigned int v=0 ; v<=(Dim-CoDim) ; v++ )
+				maxDensity = std::max< double >( maxDensity , density( levelSet.vertices[ levelSet.simplexIndices[ components[i][j] ][v] ]*densityScale ) );
+			if( Verbose.set ) std::cout << "Max Density[ " << i << " ] " << maxDensity << std::endl;
+
+			if( maxDensity>TrimDensity.value )
 			{
-				double maxDensity = 0;
-				for( unsigned int j=0 ; j<components[i].size() ; j++ ) for( unsigned int v=0 ; v<=(Dim-CoDim) ; v++ )
-					maxDensity = std::max< double >( maxDensity , density( levelSet.vertices[ levelSet.simplexIndices[ components[i][j] ][v] ]*densityScale ) );
-				if( Verbose.set ) std::cout << "Max Density[ " << i << " ] " << maxDensity << std::endl;
-	
-				if( maxDensity>Trim.value )
-				{
-					temp.reserve( temp.size() + components[i].size() );
-					for( unsigned int j=0 ; j<components[i].size() ; j++ ) temp.push_back( levelSet.simplexIndices[ components[i][j] ] );
-				}
-			}
-			levelSet.simplexIndices = temp;
-		}
-		else
-		{
-			for( unsigned int i=(unsigned int)levelSet.simplexIndices.size() ; i>0 ; i-- )
-			{
-				bool remove = true;
-				for( unsigned int j=0 ; j<=(Dim-CoDim) ; j++ ) if( density( levelSet.vertices[ levelSet.simplexIndices[i-1][j] ]*densityScale )>Trim.value ) remove = false;
-				if( remove )
-				{
-					levelSet.simplexIndices[i-1] = levelSet.simplexIndices.back();
-					levelSet.simplexIndices.pop_back();
-				}
+				temp.reserve( temp.size() + components[i].size() );
+				for( unsigned int j=0 ; j<components[i].size() ; j++ ) temp.push_back( levelSet.simplexIndices[ components[i][j] ] );
 			}
 		}
+		levelSet.simplexIndices = temp;
 	}
 
 	std::vector< Point< double , Dim > > frame[2];
