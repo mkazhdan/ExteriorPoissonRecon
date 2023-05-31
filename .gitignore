@@ -1,7 +1,10 @@
 .vs/
 x64/
+Bin/
+Obj/
 *.log
 *.tlog
 *.pdb
 *.ipdb
 *.user
+.o

@@ -41,12 +41,14 @@ Generates a sampling of points and frames (encoded as the entries of a skew-symm
 <dd>
 This string specifies the type of geometry the points should be sampled from. Supported types include:
 <UL>
+For points sampled from 3D curves:
 <LI><code>line_segment</code>: Points lie on a (straight) line segment
 <LI><code>circle</code>: Points lie on a circle
 <LI><code>link</code>: Points lie on two interlocking circles
 <LI><code>spiral:&lt;r&gt;</code>: Points lie on a spiral with <code>r</code> rotations
 <LI><code>torus_knot:&lt;p&gt;:&lt;q&gt;</code>: Points lie on a (<code>p</code>,<code>q</code>) torus-knot 
 <LI><code>borromean_rings</code>: Points lie on interlocking Borromean rings
+For points sampled from 4D surfaces:
 <LI><code>clifford_torus</code>: Points lie on the Clifford torus
 <LI><code>hopf_torus:&lt;n&gt;:&lt;a&gt;</code>: Points lie on the Hopf torus with <code>n</code> nodes and amplitude <code>a</code>.<BR>
 Reasonable values for amplitude are in the range [0.1,0.5].
@@ -268,15 +270,12 @@ The default value for this argument is 0, 0, 0, 1.
 <SUMMARY>
 <font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize3D</b></font>
 </SUMMARY>
-For testing purposes, four point sets are provided:
-<ol>
 
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/horse.npts"><b>Horse</b></a>:
-A set of 100,000 oriented point samples (represented in ASCII format) was obtained by sampling a virtual horse model with a sampling density proportional to curvature, giving a set of non-uniformly distributed points.<br>
-The surface of the model can be reconstructed by calling the either Poisson surface reconstructor:
-<blockquote><code>% PoissonRecon --in horse.npts --out horse.ply --depth 10</code></blockquote>
-or the SSD surface reconstructor
-<blockquote><code>% SSDRecon --in horse.npts --out horse.ply --depth 10</code></blockquote>
+To reconstruct a (4,5) torus-knot one proceeds in three steps:
+
+<ol>
+<li> One constructs the framed samples:
+<blockquote><code>% Sample --type torus_knot:4:5 --out samples.ply</code></blockquote>
 </li>
 
 <li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/bunny.points.ply"><b>Bunny</b></a>:

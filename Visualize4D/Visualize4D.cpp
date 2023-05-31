@@ -43,7 +43,7 @@ static const unsigned int Dim = 4;
 static const unsigned int CoDim = 2;
 
 
-Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" ) , Density( "density" );
+Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" ) , LevelSets( "levelSets" ) , Density( "density" );
 Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) ;
 Misha::CmdLineReadable NoOrient( "noOrient" ) , Verbose( "verbose" );
 
@@ -51,6 +51,7 @@ Misha::CmdLineReadable* params[] =
 {
 	&In ,
 	&Out ,
+	&LevelSets ,
 	&Density ,
 	&TrimDensity ,
 	&NoOrient ,
@@ -62,8 +63,9 @@ void ShowUsage( const char* ex )
 {
 	printf( "Usage %s:\n" , ex );
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
-	printf( "\t[--%s <output mesh>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <density grid>]\n" , Density.name.c_str() );
+	printf( "\t[--%s <output mesh>]\n" , Out.name.c_str() );
+	printf( "\t[--%s <output level sets>]\n" , LevelSets.name.c_str() );
 	printf( "\t[--%s <trim value>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
@@ -179,6 +181,71 @@ int main( int argc , char* argv[] )
 		using Vertex = Factory::VertexType;
 		Factory factory;
 		PLY::WriteTriangles< Factory , unsigned int >( Out.value , factory , levelSet.vertices , levelSet.simplexIndices , PLY_BINARY_NATIVE );
+	}
+
+	// Output the level sets
+	if( LevelSets.set )
+	{
+		timer.reset();
+		std::vector< double > xValues( sMesh.vertices.size() ) , yValues( sMesh.vertices.size() );
+		for( unsigned int i=0 ; i<sMesh.vertices.size() ; i++ )
+		{
+			Point< double , CoDim > v = grid( sMesh.vertices[i] );
+			xValues[i] = v[0];
+			yValues[i] = v[1];
+		}
+		if( Verbose.set ) std::cout << "Sampled implicit function: " << timer.elapsed() << " (s)" << std::endl;
+
+		timer.reset();
+		MarchingSimplices::SimplicialMesh< Dim-1 , unsigned int , Point< double , Dim > > xLevelSet , yLevelSet;
+		xLevelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return xValues[idx]; } , Point< double , 1 >() );
+		yLevelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return yValues[idx]; } , Point< double , 1 >() );
+		if( Verbose.set ) std::cout << "Level set extracted: " << timer.elapsed() << " (s)" << std::endl;
+
+
+		for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ ) xLevelSet.vertices[i] = voxelToWorld( xLevelSet.vertices[i] );
+		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ ) yLevelSet.vertices[i] = voxelToWorld( yLevelSet.vertices[i] );
+
+		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::RGBColorFactory< double > >;
+		using Vertex = Factory::VertexType;
+
+		std::vector< Vertex > vertices;
+		std::vector< std::vector< int > > simplices;
+		vertices.reserve( xLevelSet.vertices.size() + yLevelSet.vertices.size() );
+		simplices.reserve( xLevelSet.simplexIndices.size() + yLevelSet.simplexIndices.size() );
+
+		Vertex v;
+
+		v.template get<1>() = Point< double , 3 >( 223. , 41. , 53. );
+		for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ )
+		{
+			v.template get<0>() = xLevelSet.vertices[i];
+			vertices.push_back( v );
+		}
+		v.template get<1>() = Point< double , 3 >( 55. , 114. , 255. );
+		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ )
+		{
+			v.template get<0>() = yLevelSet.vertices[i];
+			vertices.push_back( v );
+		}
+
+		for( unsigned int i=0 ; i<xLevelSet.simplexIndices.size() ; i++ )
+		{
+			SimplexIndex< Dim-1 , unsigned int > si = xLevelSet.simplexIndices[i];
+			std::vector< int > _si(Dim);
+			for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)si[j];
+			simplices.push_back( _si );
+		}
+		for( unsigned int i=0 ; i<yLevelSet.simplexIndices.size() ; i++ )
+		{
+			SimplexIndex< Dim-1 , unsigned int > si = yLevelSet.simplexIndices[i];
+			std::vector< int > _si(Dim);
+			for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)( si[j] + (unsigned int)xLevelSet.vertices.size() );
+			simplices.push_back( _si );
+		}
+
+		Factory factory;
+		PLY::WritePolygons< Factory , int >( LevelSets.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
 	}
 
 	return EXIT_SUCCESS;

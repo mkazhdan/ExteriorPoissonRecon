@@ -66,6 +66,7 @@ void ShowUsage( const char* ex )
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
 	printf( "\t[--%s <input density>]\n" , Density.name.c_str() );
 	printf( "\t[--%s <output geometry>]\n" , Out.name.c_str() );
+	printf( "\t[--%s <output level sets>]\n" , LevelSets.name.c_str() );
 	printf( "\t[--%s <trimming density>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
 	printf( "\t[--%s <tubular radius (in voxel units)>=%f]\n" , TubularRadius.name.c_str() , TubularRadius.value );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
@@ -294,6 +295,7 @@ int main( int argc , char* argv[] )
 	}
 
 	// Output the level sets
+	if( LevelSets.set )
 	{
 		timer.reset();
 		std::vector< double > xValues( sMesh.vertices.size() ) , yValues( sMesh.vertices.size() );
@@ -311,53 +313,49 @@ int main( int argc , char* argv[] )
 		yLevelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return yValues[idx]; } , Point< double , 1 >() );
 		if( Verbose.set ) std::cout << "Level set extracted: " << timer.elapsed() << " (s)" << std::endl;
 
-
 		for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ ) xLevelSet.vertices[i] = voxelToWorld( xLevelSet.vertices[i] );
 		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ ) yLevelSet.vertices[i] = voxelToWorld( yLevelSet.vertices[i] );
 
-		if( LevelSets.set )
+		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::RGBColorFactory< double > >;
+		using Vertex = Factory::VertexType;
+
+		std::vector< Vertex > vertices;
+		std::vector< std::vector< int > > simplices;
+		vertices.reserve( xLevelSet.vertices.size() + yLevelSet.vertices.size() );
+		simplices.reserve( xLevelSet.simplexIndices.size() + yLevelSet.simplexIndices.size() );
+
+		Vertex v;
+
+		v.template get<1>() = Point< double , 3 >( 223. , 41. , 53. );
+		for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ )
 		{
-			using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::RGBColorFactory< double > >;
-			using Vertex = Factory::VertexType;
-
-			std::vector< Vertex > vertices;
-			std::vector< SimplexIndex< Dim-1 , int > > simplices;
-			vertices.reserve( xLevelSet.vertices.size() + yLevelSet.vertices.size() );
-			simplices.reserve( xLevelSet.simplexIndices.size() + yLevelSet.simplexIndices.size() );
-
-			Vertex v;
-
-			v.template get<1>() = Point< double , 3 >( 223. , 41. , 53. );
-			for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ )
-			{
-				v.template get<0>() = xLevelSet.vertices[i];
-				vertices.push_back( v );
-			}
-			v.template get<1>() = Point< double , 3 >( 55. , 114. , 255. );
-			for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ )
-			{
-				v.template get<0>() = yLevelSet.vertices[i];
-				vertices.push_back( v );
-			}
-
-			for( unsigned int i=0 ; i<xLevelSet.simplexIndices.size() ; i++ )
-			{
-				SimplexIndex< Dim-1 , unsigned int > si = xLevelSet.simplexIndices[i];
-				SimplexIndex< Dim-1 , int > _si;
-				for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)si[j];
-				simplices.push_back( _si );
-			}
-			for( unsigned int i=0 ; i<yLevelSet.simplexIndices.size() ; i++ )
-			{
-				SimplexIndex< Dim-1 , unsigned int > si = yLevelSet.simplexIndices[i];
-				SimplexIndex< Dim-1 , int > _si;
-				for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)( si[j] + (unsigned int)xLevelSet.vertices.size() );
-				simplices.push_back( _si );
-			}
-
-			Factory factory;
-			PLY::WriteTriangles< Factory , int >( LevelSets.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
+			v.template get<0>() = xLevelSet.vertices[i];
+			vertices.push_back( v );
 		}
+		v.template get<1>() = Point< double , 3 >( 55. , 114. , 255. );
+		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ )
+		{
+			v.template get<0>() = yLevelSet.vertices[i];
+			vertices.push_back( v );
+		}
+
+		for( unsigned int i=0 ; i<xLevelSet.simplexIndices.size() ; i++ )
+		{
+			SimplexIndex< Dim-1 , unsigned int > si = xLevelSet.simplexIndices[i];
+			std::vector< int > _si(Dim);
+			for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)si[j];
+			simplices.push_back( _si );
+		}
+		for( unsigned int i=0 ; i<yLevelSet.simplexIndices.size() ; i++ )
+		{
+			SimplexIndex< Dim-1 , unsigned int > si = yLevelSet.simplexIndices[i];
+			std::vector< int > _si(Dim);
+			for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)( si[j] + (unsigned int)xLevelSet.vertices.size() );
+			simplices.push_back( _si );
+		}
+
+		Factory factory;
+		PLY::WritePolygons< Factory , int >( LevelSets.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
 	}
 
 

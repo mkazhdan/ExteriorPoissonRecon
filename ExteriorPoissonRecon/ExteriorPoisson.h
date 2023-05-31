@@ -226,7 +226,6 @@ namespace ExteriorPoisson
 					for( int i=0 ; i<(int)_Vs[depth].resolution() ; i++ ) for( unsigned int t=0 ; t<threads ; t++ ) _Vs[depth][i] += __Vs[t][depth][i];
 				}
 			}
-#pragma message( "[WARNING] This could be made more efficient through successive prolongation" )
 			// Evaluate at the element centers
 #pragma omp parallel for
 			for( int i=0 ; i<(int)scalars.elementNum() ; i++ )
