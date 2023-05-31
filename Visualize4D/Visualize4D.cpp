@@ -39,36 +39,13 @@ DAMAGE.
 #include "Misha/RegularGrid.h"
 #include "Include/Hat.h"
 
-#define NEW_VISUALIZE_4D_CODE
-
 static const unsigned int Dim = 4;
 static const unsigned int CoDim = 2;
 
-enum
-{
-	CURVATURE_NONE ,
-	CURVATURE_INTEGRATED_GAUSSIAN ,
-	CURVATURE_INTEGRATED_MEAN ,
-	CURVATURE_POINTWISE_GAUSSIAN ,
-	CURVATURE_POINTWISE_MEAN ,
-	CURVATURE_COUNT
-};
-const std::string CurvatureNames[] =
-{
-	std::string( "none" ) ,
-	std::string( "gaussian (integrated)" ) ,
-	std::string( "mean (integrated)" ) ,
-	std::string( "gaussian (pointwise)" ) ,
-	std::string( "mean (pointwise)" )
-};
-
-const double DefaultStereographic[] = { 1 , 2 , 3 , 4 };
 
 Misha::CmdLineParameter< std::string > In( "in" ) , OutHeader( "out" ) , Density( "density" );
-Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) , CurvatureThreshold( "cThreshold" , 90. );
-Misha::CmdLineParameterArray< double , Dim > Stereographic( "stereo" , DefaultStereographic );
-Misha::CmdLineParameter< int > CurvatureType( "cType" , CURVATURE_INTEGRATED_GAUSSIAN );
-Misha::CmdLineReadable Normalize( "normalize" ) , NoOrient( "noOrient" ) , Verbose( "verbose" ) , VoxelCoordinates( "vCoordinates" ) , AbsoluteCurvature( "abs" );
+Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) ;
+Misha::CmdLineReadable NoOrient( "noOrient" ) , Verbose( "verbose" );
 
 Misha::CmdLineReadable* params[] =
 {
@@ -76,13 +53,7 @@ Misha::CmdLineReadable* params[] =
 	&OutHeader ,
 	&Density ,
 	&TrimDensity ,
-	&Normalize ,
-	&Stereographic ,
-	&CurvatureThreshold ,
 	&NoOrient ,
-	&AbsoluteCurvature ,
-	&CurvatureType ,
-	&VoxelCoordinates ,
 	&Verbose ,
 	NULL
 };
@@ -94,14 +65,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <output header>]\n" , OutHeader.name.c_str() );
 	printf( "\t[--%s <density grid>]\n" , Density.name.c_str() );
 	printf( "\t[--%s <trim value>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
-	printf( "\t[--%s <stereographic projection axis>]\n" , Stereographic.name.c_str() );
-	printf( "\t[--%s <curvature threshold (in degrees)>=%f]\n" , CurvatureThreshold.name.c_str() , CurvatureThreshold.value );
-	printf( "\t[--%s <curvature type>=%d]\n" , CurvatureType.name.c_str() , CurvatureType.value );
-	for( unsigned int i=0 ; i<CURVATURE_COUNT ; i++ ) printf( "\t\t%d] %s\n" , i , CurvatureNames[i].c_str() );
-	printf( "\t[--%s]\n" , Normalize.name.c_str() );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
-	printf( "\t[--%s]\n" , AbsoluteCurvature.name.c_str() );
-	printf( "\t[--%s]\n" , VoxelCoordinates.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
@@ -119,17 +83,6 @@ unsigned int GridDepth( const RegularGrid< Data , Dim > &grid )
 	}
 	return depth;
 }
-
-// A mapping taking the sphere to the plane through the origin perpendicular to a
-Point< double , 4 > StereographicProjection( Point< double , 4 > p , Point< double , 4 > a );
-
-// Comptues the Gaussian curvature (angle deficit) at each vertex
-template< unsigned int Dim , typename Index >
-std::vector< double > GaussianCurvature( const std::vector< Point< double , Dim > > &vertices , const std::vector< SimplexIndex< 2 , Index > > &triangles );
-
-// Comptues the mean curvature (edge-weighted average of dihedral angles of incident edges) at each vertex
-template< unsigned int Dim , typename Index >
-std::vector< double > MeanCurvature( const std::vector< Point< double , Dim > > &vertices , const std::vector< SimplexIndex< 2 , Index > > &triangles );
 
 // Orients the triangles explicitly
 template< typename Index >
@@ -151,7 +104,6 @@ int main( int argc , char* argv[] )
 	XForm< double , Dim+1 > voxelToWorld;
 
 	grid.read( In.value , voxelToWorld );
-	if( VoxelCoordinates.set ) voxelToWorld = XForm< double , Dim+1 >::Identity();
 	unsigned int depth = GridDepth( grid );
 
 	if( Density.set )
@@ -181,58 +133,6 @@ int main( int argc , char* argv[] )
 		std::cout << "Oriented: " << timer.elapsed() << " (s)" << std::endl;
 	}
 
-	std::vector< double > curvatureValues;
-
-	switch( CurvatureType.value )
-	{
-		case CURVATURE_NONE:
-			break;
-		case CURVATURE_INTEGRATED_GAUSSIAN:
-		case CURVATURE_POINTWISE_GAUSSIAN:
-			curvatureValues = GaussianCurvature( levelSet.vertices , levelSet.simplexIndices );
-			break;
-		case CURVATURE_INTEGRATED_MEAN:
-		case CURVATURE_POINTWISE_MEAN:
-			curvatureValues = MeanCurvature( levelSet.vertices , levelSet.simplexIndices ) ; break;
-		default: ERROR_OUT( "Unrecognized curvature type" );
-	}
-	for( unsigned int i=0 ; i<curvatureValues.size() ; i++ ) curvatureValues[i] *= 180. / M_PI;
-	if( CurvatureType.value==CURVATURE_POINTWISE_GAUSSIAN || CurvatureType.value==CURVATURE_POINTWISE_MEAN )
-	{
-		std::vector< double > areas( levelSet.vertices.size() , 0 );
-		for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
-		{
-			Simplex< double , Dim , 2 > tri;
-			for( unsigned int k=0 ; k<=2 ; k++ ) tri[k] = levelSet.vertices[ levelSet.simplexIndices[i][k] ];
-			double area = tri.measure() / 3.;
-			for( unsigned int k=0 ; k<=2 ; k++ ) areas[ levelSet.simplexIndices[i][k] ] += area;
-		}
-		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) curvatureValues[i] /= areas[i];
-	}
-
-	if( CurvatureThreshold.value<=0 )
-	{
-		double dev = 0;
-		for( unsigned int i=0 ; i<curvatureValues.size() ; i++ ) dev += curvatureValues[i] * curvatureValues[i];
-		dev = sqrt( dev/curvatureValues.size() );
-		for( unsigned int i=0 ; i<curvatureValues.size() ; i++ ) curvatureValues[i] /= dev;
-		CurvatureThreshold.value = 1.;
-		std::cout << "Deviation: " << dev << std::endl;
-	}
-
-	if( CurvatureType.value!=CURVATURE_NONE )
-	{
-
-		double avg = 0 , dev = 0 , max = 0;
-		for( unsigned int i=0 ; i<curvatureValues.size() ; i++ ) avg += curvatureValues[i] , max = std::max< double >( max , std::abs( curvatureValues[i] ) );
-		avg /= curvatureValues.size();
-		for( unsigned int i=0 ; i<curvatureValues.size() ; i++ ) dev += curvatureValues[i] * curvatureValues[i];
-		dev = sqrt( dev / curvatureValues.size() );
-		std::cout << "Curvature average: "   << avg << std::endl;
-		std::cout << "Curvature deviation: " << dev << std::endl;
-		std::cout << "Curvature maximum: "   << max << std::endl;
-	}
-
 	if( Density.set && TrimDensity.value>0 )
 	{
 		std::vector< SimplexIndex< Dim-CoDim , unsigned int > > temp;
@@ -257,29 +157,6 @@ int main( int argc , char* argv[] )
 
 	for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );
 
-	if( Normalize.set )
-	{
-		auto Center = [&]( void )
-		{
-			Point< double , Dim > center;
-			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) center += levelSet.vertices[i];
-			return center / (double)levelSet.vertices.size();
-		};
-
-		auto Radius = [&]( void )
-		{
-			double radius = 0;
-			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) radius += levelSet.vertices[i].squareNorm();
-			return sqrt( radius / (double)levelSet.vertices.size() );
-		};
-
-		Point< double , Dim > center = Center();
-		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] -= center;
-
-		double radius = Radius();
-		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] /= radius;
-	}
-
 	auto AbsoluteValueToColor = []( double v )
 	{
 		v = std::min< double >( 1. , std::max< double >( 0. , v ) );
@@ -299,241 +176,13 @@ int main( int argc , char* argv[] )
 	if( OutHeader.set )
 	{
 		std::string fileName = OutHeader.value + ".4D.ply";
-		if( CurvatureType.value==CURVATURE_NONE )
-		{
-			using Factory = VertexFactory::PositionFactory< double , Dim >;
-			using Vertex = Factory::VertexType;
-			Factory factory;
-			PLY::WriteTriangles< Factory , unsigned int >( fileName , factory , levelSet.vertices , levelSet.simplexIndices , PLY_BINARY_NATIVE );
-		}
-		else
-		{
-			using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::RGBColorFactory< double > >;
-			using Vertex = Factory::VertexType;
-			std::vector< Vertex > vertices( levelSet.vertices.size() );
-			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
-			{
-				vertices[i].template get<0>() = levelSet.vertices[i];
-				vertices[i].template get<1>() = AbsoluteCurvature.set ? AbsoluteValueToColor( std::abs( curvatureValues[i] ) / CurvatureThreshold.value ) : ValueToColor( curvatureValues[i] / CurvatureThreshold.value );
-			}
-
-			Factory factory;
-
-			PLY::WriteTriangles< Factory , unsigned int >( fileName , factory , vertices , levelSet.simplexIndices , PLY_BINARY_NATIVE );
-		}
+		using Factory = VertexFactory::PositionFactory< double , Dim >;
+		using Vertex = Factory::VertexType;
+		Factory factory;
+		PLY::WriteTriangles< Factory , unsigned int >( fileName , factory , levelSet.vertices , levelSet.simplexIndices , PLY_BINARY_NATIVE );
 	}
-
-	Point< double , Dim > stereographicAxis;
-	for( unsigned int d=0 ; d<Dim ; d++ ) stereographicAxis[d] = Stereographic.values[d];
-
-	if( stereographicAxis.squareNorm() )
-	{
-		std::vector< Point< double , Dim-1 > > vertices( levelSet.vertices.size() );
-		Point< double,  4 > frame[Dim];
-
-		// The first vector is the perpendicular to the plane onto which the stereographic projection maps the sphere
-		frame[0] = stereographicAxis / sqrt( stereographicAxis.squareNorm() );
-
-		// Compute the remaining frames by using coordinate axis and Gram-Schmidt (initially checking that frame[0] is not itself a coordinate axis
-		unsigned int count = 0;
-		for( unsigned int d=0 ; d<Dim ; d++ ) if( frame[0][d] ) count++;
-		if( count==1 )
-		{
-			unsigned int dir = -1;
-			for( unsigned int d=0 ; d<Dim ; d++ ) if( frame[0][d] ) dir=d;
-			if( dir==-1 ) ERROR_OUT( "Could not determine direction" );
-			for( unsigned int d=1 ; d<Dim ; d++ ) frame[d][(dir+d)%Dim] = 1;
-		}
-		else
-		{
-			for( unsigned int d=1 ; d<Dim ; d++ )
-			{
-				frame[d][d] = 1.;
-				for( unsigned int _d=0 ; _d<d ; _d++ ) frame[d] -= Point< double , 4 >::Dot( frame[_d] , frame[d] ) * frame[_d];
-				frame[d] /= sqrt( frame[d].squareNorm() );
-			}
-		}
-		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
-		{
-			Point< double , Dim > v = StereographicProjection( levelSet.vertices[i] , frame[0] );
-			for( unsigned int d=0 ; d<3 ; d++ ) vertices[i][d] = Point< double , Dim >::Dot( v , frame[d+1] );
-		}
-
-		if( OutHeader.set )
-		{
-			std::string fileName = OutHeader.value + ".stereo.ply";
-			std::vector< SimplexIndex< Dim-CoDim , int > > simplices( levelSet.simplexIndices.size() );
-			for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ ) for( unsigned int j=0 ; j<=(Dim-CoDim) ; j++ ) simplices[i][j] = (int)levelSet.simplexIndices[i][j];
-			if( CurvatureType.value==CURVATURE_NONE )
-			{
-				using Factory = VertexFactory::PositionFactory< double , Dim-1 >;
-				using Vertex = Factory::VertexType;
-				Factory factory;
-
-				PLY::WriteTriangles< Factory , int >( fileName , factory , vertices , simplices , PLY_BINARY_NATIVE );
-			}
-			else
-			{
-				using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim-1 > , VertexFactory::RGBColorFactory< double > >;
-				using Vertex = Factory::VertexType;
-				std::vector< Vertex > _vertices( vertices.size() );
-				for( unsigned int i=0 ; i<vertices.size() ; i++ )
-				{
-					_vertices[i].template get<0>() = vertices[i];
-					_vertices[i].template get<1>() = AbsoluteCurvature.set ? AbsoluteValueToColor( std::abs( curvatureValues[i] ) / CurvatureThreshold.value ) : ValueToColor( curvatureValues[i] / CurvatureThreshold.value );
-				}
-
-				Factory factory;
-
-				PLY::WriteTriangles< Factory , int >( fileName , factory , _vertices , simplices , PLY_BINARY_NATIVE );
-			}
-		}
-	}
-
 
 	return EXIT_SUCCESS;
-}
-
-// From https://en.wikipedia.org/wiki/M%C3%B6bius_transformation
-Point< double , Dim > StereographicProjection( Point< double , Dim > p , Point< double , Dim > a , Point< double , Dim > b , double alpha , bool denom )
-{
-	return b + alpha * ( p - a ) / ( denom ? (p-a).squareNorm() : 1. );
-}
-Point< double , Dim > StereographicProjection( Point< double , Dim > p , Point< double , Dim > a )
-{
-	// a -> infinity
-	// p = -a -> ( 0 , 0 , 0 , 0 )
-	//	 => b + alpha * ( p - a ) / || p - a ||^2 -> ( 0 , 0 , 0 , 0 )
-	//	<=> b - 2 * alpha * a / 4 -> ( 0 , 0 , 0 , 0 )
-	//	<=> b = alpha * a / 2
-	// Given p s.t. < p , a > = 0
-	//	< F(p) , a > = < b + alpha * ( p - a ) / || p - a ||^2 , a >
-	//	             = alpha * < a/2 + ( p - a ) / || p - a ||^2 , a >
-	//	             = alpha * ( 0.5 + < ( p - a ) / || p - a ||^2 , a >
-	//	             = alpha * ( 0.5 - 1. / || p - a ||^2 )
-	//	             = alpha * ( 0.5 - 1. / ( || p ||^2 + || a ||^2 )
-	//	             = 0 if || p ||^2 = 0
-	a /= sqrt( a.squareNorm() );
-	return StereographicProjection( p , a , a/2 , 1. , true );
-}
-
-// Computes the Gaussian curvature (angle deficit) at each vertex
-template< unsigned int D , typename Index >
-std::vector< double > GaussianCurvature( const std::vector< Point< double , D > > &vertices , const std::vector< SimplexIndex< 2 , Index > > &triangles )
-{
-	std::vector< double > gCurvatures( vertices.size() , 0 );
-	for( unsigned int i=0 ; i<triangles.size() ; i++ )
-	{
-		for( unsigned int j=0 ; j<3 ; j++ )
-		{
-			Point< double , Dim > v[3];
-			for( unsigned int k=0 ; k<3 ; k++ ) v[k] = vertices[ triangles[i][(j+k)%3] ];
-
-			Point< double , Dim > d[] = { v[1]-v[0] , v[2]-v[0] };
-			d[0] /= sqrt( d[0].squareNorm() ) , d[1] /= sqrt( d[1].squareNorm() );
-			gCurvatures[ triangles[i][j] ] += acos( Point< double , Dim >::Dot( d[0] , d[1] ) );
-		}
-	}
-	for( unsigned int i=0 ; i<gCurvatures.size() ; i++ ) gCurvatures[i] = ( 2. * M_PI - gCurvatures[i] );
-	return gCurvatures;
-}
-
-template< unsigned int Dim , typename Index >
-std::vector< double > MeanCurvature( const std::vector< Point< double , Dim > > &vertices , const std::vector< SimplexIndex< 2 , Index > > &_triangles )
-{
-	using EdgeIndex = MarchingSimplices::MultiIndex< 2 , Index >;
-	using EdgeMap = typename EdgeIndex::map;
-	struct EdgeData
-	{
-		Index t1 , t2;
-		double area;
-		EdgeData( void ) : t1(-1) , t2(-1) , area(0) {}
-	};
-
-	std::vector< SimplexIndex< 2 , Index > > triangles = _triangles;
-	Orient( triangles );
-
-	auto Frame = [&]( Index i )
-	{
-		Point< double , Dim > d[] = { vertices[ triangles[i][1] ] - vertices[ triangles[i][0] ] , vertices[ triangles[i][2] ] - vertices[ triangles[i][0] ] };
-		return Hat::Wedge( d[0] , d[1] );
-	};
-
-
-	EdgeMap eMap;
-
-	for( unsigned int i=0 ; i<triangles.size() ; i++ ) for( unsigned int j=0 ; j<3 ; j++ )
-	{
-		Index idx[] = { triangles[i][(j+1)%3] , triangles[i][(j+2)%3] };
-		eMap[ EdgeIndex( idx ) ] = 0;
-	}
-
-	Index count = 0;
-	for( auto iter=eMap.begin() ; iter!=eMap.end() ; iter++ ) iter->second = count++;
-
-	std::vector< EdgeData > eData( count );
-
-	for( unsigned int i=0 ; i<triangles.size() ; i++ )
-	{
-		Simplex< double , Dim , 2 > tri;
-		for( unsigned int k=0 ; k<=2 ; k++ ) tri[k] = vertices[ triangles[i][k] ];
-		double area = tri.measure()/3.;
-		for( unsigned int j=0 ; j<3 ; j++ )
-		{
-			Index idx[] = { triangles[i][(j+1)%3] , triangles[i][(j+2)%3] };
-			auto iter = eMap.find( EdgeIndex(idx)  );
-			if( iter==eMap.end() ) ERROR_OUT( "Could not find edge" );
-			if     ( eData[ iter->second ].t1==-1 ) eData[ iter->second ].t1 = i , eData[ iter->second ].area += area;
-			else if( eData[ iter->second ].t2==-1 ) eData[ iter->second ].t2 = i , eData[ iter->second ].area += area;
-			else ERROR_OUT( "Both triangles occupied" );
-		}
-	}
-
-	std::vector< double > mCurvatures( vertices.size() , 0 ) , weights( vertices.size() , 0 );
-	for( auto iter=eMap.begin() ; iter!=eMap.end() ; iter++ )
-	{
-		Index e = iter->second;
-		unsigned int t1 = eData[e].t1 , t2 = eData[e].t2;
-		if( t2==-1 ) WARN( "Boundary edge: " , t1 );
-		else
-		{
-			int sign1=0 , sign2=0;
-			for( unsigned int j=0 ; j<3 ; j++ )
-			{
-				if     ( triangles[t1][(j+1)%3]==iter->first[0] && triangles[t1][(j+2)%3]==iter->first[1] ) sign1 =  1;
-				else if( triangles[t1][(j+1)%3]==iter->first[1] && triangles[t1][(j+2)%3]==iter->first[0] ) sign1 = -1;
-				if     ( triangles[t2][(j+1)%3]==iter->first[0] && triangles[t2][(j+2)%3]==iter->first[1] ) sign2 =  1;
-				else if( triangles[t2][(j+1)%3]==iter->first[1] && triangles[t2][(j+2)%3]==iter->first[0] ) sign2 = -1;
-			}
-			if( !sign1 || !sign2 ) ERROR_OUT( "Could not find orientations" );
-			Hat::SkewSymmetricMatrix< double , Dim > skew1 = Frame( eData[e].t1 ) , skew2 = Frame( eData[e].t2 );
-			double n1 = skew1.squareNorm() , n2 = skew2.squareNorm();
-			if( !n1 || !n2 ) WARN( "Vanishing frame" );
-			else
-			{
-				n1 = sqrt(n1) , n2 = sqrt(n2);
-				skew1 /= n1 , skew2 /= n2;
-				if( sign1 * sign2>0 ) ERROR_OUT( "Bad orientation" );
-				double theta , dot = Hat::SkewSymmetricMatrix< double , Dim >::Dot( skew1 , skew2 );
-				if     ( dot>= 1. ) theta = 0;
-				else if( dot<=-1. ) theta = M_PI;
-				else                theta = acos( dot );
-				Point< double , Dim > c = ( vertices[ triangles[t1][0] ] + vertices[ triangles[t1][1] ] + vertices[ triangles[t1][2] ] ) / 3.;
-				Hat::SkewSymmetricMatrix< double , Dim > skew = Hat::Wedge( vertices[ iter->first[0] ]-c , vertices[ iter->first[1] ]-c );
-				Hat::SkewSymmetricMatrix< double , Dim > v = skew1 - skew2;
-
-				if( Hat::SkewSymmetricMatrix< double , Dim >::Dot( v , skew )<0 ) theta = -theta;
-
-				weights[ iter->first[0] ]++;
-				weights[ iter->first[1] ]++;
-				mCurvatures[ iter->first[0] ] += theta;
-				mCurvatures[ iter->first[1] ] += theta;
-			}
-		}
-	}
-	for( unsigned int i=0 ; i<mCurvatures.size() ; i++ ) mCurvatures[i] /= weights[i];
-
-	return mCurvatures;
 }
 
 template< typename Index >

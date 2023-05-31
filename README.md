@@ -170,7 +170,7 @@ If this argument is not provided, no density-based trimming is performed.
 <dd>
 This optional string value specifies the header for the geometry.<br>
 The zero level-sets of the two implicit functions will be output to the file <code>&lt;geometry header&gt;.ply</code>,
-the dilated curve will be output to <code>&lt;geometry header&gt;</code>.tubular.ply,
+the dilated curve will be output to <code>&lt;geometry header&gt;.tubular.ply</code>,
 and the curve itself will be output to the file <code>&lt;geometry header&gt;.lns</code>.<br>
 The first two files will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, with the first outputting vertices with color.
 The last file will be a raw ASCII file with six floating point values per line, representing the set of edges comprising the curve.<br>
@@ -179,9 +179,15 @@ If this argument is not provided, no output is generated.
 
 <dt>[<b>--tubular</b> &lt;<i>tubular radius</i>&gt;]</dt>
 <dd>
-This optional floating point value specifies the radius of the dilated curve in units of voxels.<br>
-If the value is not positive, the dilated curve will not be output.<br>
+This optional non-negative floating point value specifies the radius of the dilated curve in units of voxels.<br>
+If the value is zero, the dilated curve will not be output.<br>
 The default value for this argument is 0.5.
+</dd>
+
+<dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
+<dd>
+This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
+The default value for this argument is 0.0.
 </dd>
 
 <dt>[<b>--verbose</b>]</dt>
@@ -195,6 +201,53 @@ Enabling this flag provides a more verbose description of the running times and 
 </ul>
 
 <!--------------------->
+
+<ul>
+<dl>
+<DETAILS>
+<SUMMARY>
+<font size="+1"><b>Visualize4D</b></font>:
+Extracts a surface from the reconstructed implicit function.
+</SUMMARY>
+
+<dt><b>--in</b> &lt;<i>implicit grid</i>&gt;</dt>
+<dd>
+This string value is the file-name of the grid sampling the reconstructed implicit function.
+</dd>
+
+<dt>[<b>--density</b> &lt;<i>density grid</i>&gt;]</dt>
+<dd>
+This optional string value is the file-name of the grid sampling the density values.<br>
+If this argument is not provided, no density-based trimming is performed.
+</dd>
+
+<dt>[<b>--out</b> &lt;<i>geometry header</i>&gt;]</dt>
+<dd>
+This optional string value specifies the header for the geometry.<br>
+The zero level-sets of the two implicit functions will be output to the file <code>&lt;geometry header&gt;.ply</code>,
+the dilated curve will be output to <code>&lt;geometry header&gt;.tubular.ply</code>,
+and the curve itself will be output to the file <code>&lt;geometry header&gt;.lns</code>.<br>
+The first two files will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, with the first outputting vertices with color.
+The last file will be a raw ASCII file with six floating point values per line, representing the set of edges comprising the curve.<br>
+If this argument is not provided, no output is generated.
+</dd>
+
+<dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
+<dd>
+This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
+The default value for this argument is 0.0.
+</dd>
+
+<dt>[<b>--verbose</b>]</dt>
+<dd>
+Enabling this flag provides a more verbose description of the running times and memory usages of individual components of the surface extraction.
+</dd>
+
+
+</DETAILS>
+</dl>
+</ul>
+
 
 <hr>
 <a name="USAGE"><b>USAGE EXAMPLES</b></a><br>

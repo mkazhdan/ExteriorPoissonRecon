@@ -45,7 +45,7 @@ static const unsigned int CoDim = 2;
 
 Misha::CmdLineParameter< std::string > In( "in" ) , OutHeader( "out" ) , Density( "density" );
 Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) , Tubular( "tubular" , 0.5 );
-Misha::CmdLineReadable NoOrient( "noOrient" ) , VoxelCoordinates( "vCoordinates" ) , Verbose( "verbose" );
+Misha::CmdLineReadable NoOrient( "noOrient" ) , Verbose( "verbose" );
 
 Misha::CmdLineReadable* params[] =
 {
@@ -55,7 +55,6 @@ Misha::CmdLineReadable* params[] =
 	&Tubular ,
 	&TrimDensity ,
 	&NoOrient ,
-	&VoxelCoordinates ,
 	&Verbose ,
 	NULL
 };
@@ -68,7 +67,6 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <output header>]\n" , OutHeader.name.c_str() );
 	printf( "\t[--%s <trimming density>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
 	printf( "\t[--%s <tubular radius>=%f]\n" , Tubular.name.c_str() , Tubular.value );
-	printf( "\t[--%s]\n" , VoxelCoordinates.name.c_str() );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
@@ -105,7 +103,6 @@ int main( int argc , char* argv[] )
 	XForm< double , Dim+1 > voxelToWorld;
 
 	grid.read( In.value , voxelToWorld );
-	if( VoxelCoordinates.set ) voxelToWorld = XForm< double , Dim+1 >::Identity();
 	unsigned int depth = GridDepth( grid );
 	double scale = pow( voxelToWorld(0,0) * voxelToWorld(1,1) * voxelToWorld(2,2) , 1./3 );
 

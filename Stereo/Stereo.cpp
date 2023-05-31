@@ -11,13 +11,11 @@
 #include "Misha/RegularGrid.h"
 #include "Include/Hat.h"
 
-#define NEW_VISUALIZE_4D_CODE
-
 static const unsigned int Dim = 4;
 static const unsigned int CoDim = 2;
 
 
-const double DefaultStereographic[] = { 1 , 2 , 3 , 4 };
+const double DefaultStereographic[] = { 0 , 0 , 0 , 1 };
 
 Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
 Misha::CmdLineParameterArray< double , Dim > Stereographic( "stereo" , DefaultStereographic );
@@ -37,8 +35,8 @@ Misha::CmdLineReadable* params[] =
 void ShowUsage( const char* ex )
 {
 	printf( "Usage %s:\n" , ex );
-	printf( "\t --%s <input mesh>\n" , In.name.c_str() );
-	printf( "\t[--%s <output mesy>]\n" , Out.name.c_str() );
+	printf( "\t --%s <input 4D mesh>\n" , In.name.c_str() );
+	printf( "\t[--%s <output 3D mesh>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <stereographic projection axis>]\n" , Stereographic.name.c_str() );
 	printf( "\t[--%s]\n" , Normalize.name.c_str() );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );

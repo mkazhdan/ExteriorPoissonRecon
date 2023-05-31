@@ -769,7 +769,7 @@ namespace Samples
 			std::string( "mobius_tube" ) , 
 			std::string( "helix_surface:<type>:<d>" ) ,
 			std::string( "lawson_surface:<m>:<k>" ),
-			std::string( "hopf_torus:<type>:<n>:<l>" ) ,
+			std::string( "hopf_torus:<n>:<l>" ) ,
 			std::string( "ky:<m>:<u>" )
 		};
 
