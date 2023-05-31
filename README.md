@@ -133,7 +133,7 @@ This optional floating point value specifies the ratio between the diameter of t
 The default value is 1.1.
 </dd>
 
-<dt>[<b>--verbosity</b> &lt;<i>verbosity</i>&gt;</b>]
+<dt>[<b>--verbose</b> &lt;<i>verbosity</i>&gt;</b>]
 <dd>
 This optional integer value specifies the level of verbosity of the executable's output to the command prompt.
 <UL>
@@ -141,6 +141,7 @@ This optional integer value specifies the level of verbosity of the executable's
 <LI>1: Global residual error
 <LI>2: Residual error after each level of the multigrid hierarchy 
 </UL>
+The default value is 0.
 </dd>
 
 </DETAILS>
@@ -274,42 +275,12 @@ The default value for this argument is 0, 0, 0, 1.
 To reconstruct a (4,5) torus-knot one proceeds in three steps:
 
 <ol>
-<li> One constructs the framed samples:
-<blockquote><code>% Sample --type torus_knot:4:5 --out samples.ply</code></blockquote>
-</li>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/bunny.points.ply"><b>Bunny</b></a>:
-A set of 362,271 oriented point samples (represented in PLY format) was obtained by merging the data from the original Stanford Bunny
-<a href="ftp://graphics.stanford.edu/pub/3Dscanrep/bunny.tar.gz">range scans</a>. The orientation of the sample points was estimated
-using the connectivity information within individual range scans.<br>
-The original (unscreened) Poisson reconstruction can be obtained by setting the point interpolation weight to zero:
-<blockquote><code>% PoissonRecon --in bunny.points.ply --out bunny.ply --depth 10 --pointWeight 0</code></blockquote>
-By default, the Poisson surface reconstructor uses degree-2 B-splines. A more efficient reconstruction can be obtained using degree-1 B-splines:
-<blockquote><code>% PoissonRecon --in bunny.points.ply --out bunny.ply --depth 10 --pointWeight 0 --degree 1</code></blockquote>
-(The SSD reconstructor requires B-splines of degree at least 2 since second derivatives are required to formulate the bi-Laplacian energy.)
-</li>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/eagle.points.ply"><b>Eagle</b></a>:
-A set of 796,825 oriented point samples with color (represented in PLY format) was obtained in the EPFL <a href="https://lgg.epfl.ch/statues.php">Scanning 3D Statues from Photos</a> course.<br>
-A reconstruction of the eagle can be obtained by calling:
-<blockquote><code>% PoissonRecon --in eagle.points.ply --out eagle.pr.ply --depth 10</code></blockquote>
-(with the RGBA color properties automatically detected from the .ply header).<BR>
-A reconstruction of the eagle that does not close up the holes can be obtained by first calling:
-<blockquote><code>% SSDRecon --in eagle.points.ply --out eagle.ssd.ply --depth 10 --density</code></blockquote>
-using the <b>--density</b> flag to indicate that density estimates should be output with the vertices of the mesh, and then calling:
-<blockquote><code>% SurfaceTrimmer --in eagle.ssd.ply --out eagle.ssd.trimmed.ply --trim 7</code></blockquote>
-to remove all subsets of the surface where the sampling density corresponds to a depth smaller than 7.<BR>
-This reconstruction can be chunked into cubes of size 4&times;4&times;4 by calling:
-<blockquote><code>% ChunkPly --in 1 eagle.ssd.trimmed.ply --out eagle.ssd.trimmed.chnks --width 4</code></blockquote>
-which partitions the reconstruction into 11 pieces.
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/torso.zip"><b>Torso</b></a>:
-A set of 3,488,432 (torso.points.ply) and an envelope (torso.envelope.ply).<br>
-A reconstruction of the torso that constrains the reconstruction to be contained within the envelope can be obtained by calling:
-<blockquote><code>% PoissonRecon --in torso.points.ply --envelope torso.envelope.ply --out torso.pr.ply --depth 10</code></blockquote>
-using the <b>--envelope</b> flag to specify the water-tight mesh constraining the reconstruction.<BR>
-</li>
-
+<li> Construct the framed samples:
+<blockquote><code>% Sample --type torus_knot:4:5 --out tk.4.5.samples.ply</code></blockquote>
+<li> Reconstruct the implicit function:
+<blockquote><code>% ExteriorPoissonRecon --in 3 tk.4.5.samples.ply --out tk.4.5</code></blockquote>
+<LI> Extract the curve:
+<blockquote><code>% Visualize3D --in tk.4.5.grid --density tk.4.5.density.grid --out tk.4.5.curve.ply --trimDensity 2</code></blockquote>
 </ol>
 
 </DETAILS>
@@ -322,56 +293,26 @@ using the <b>--envelope</b> flag to specify the water-tight mesh constraining th
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize4D / Stereo</b></font>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize4D Stereo</b></font>
 </SUMMARY>
-For testing purposes, four point sets are provided:
+
+To reconstruct a three-lobed Hopf Torus one proceeds in four steps:
+
 <ol>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/horse.npts"><b>Horse</b></a>:
-A set of 100,000 oriented point samples (represented in ASCII format) was obtained by sampling a virtual horse model with a sampling density proportional to curvature, giving a set of non-uniformly distributed points.<br>
-The surface of the model can be reconstructed by calling the either Poisson surface reconstructor:
-<blockquote><code>% PoissonRecon --in horse.npts --out horse.ply --depth 10</code></blockquote>
-or the SSD surface reconstructor
-<blockquote><code>% SSDRecon --in horse.npts --out horse.ply --depth 10</code></blockquote>
-</li>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/bunny.points.ply"><b>Bunny</b></a>:
-A set of 362,271 oriented point samples (represented in PLY format) was obtained by merging the data from the original Stanford Bunny
-<a href="ftp://graphics.stanford.edu/pub/3Dscanrep/bunny.tar.gz">range scans</a>. The orientation of the sample points was estimated
-using the connectivity information within individual range scans.<br>
-The original (unscreened) Poisson reconstruction can be obtained by setting the point interpolation weight to zero:
-<blockquote><code>% PoissonRecon --in bunny.points.ply --out bunny.ply --depth 10 --pointWeight 0</code></blockquote>
-By default, the Poisson surface reconstructor uses degree-2 B-splines. A more efficient reconstruction can be obtained using degree-1 B-splines:
-<blockquote><code>% PoissonRecon --in bunny.points.ply --out bunny.ply --depth 10 --pointWeight 0 --degree 1</code></blockquote>
-(The SSD reconstructor requires B-splines of degree at least 2 since second derivatives are required to formulate the bi-Laplacian energy.)
-</li>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/eagle.points.ply"><b>Eagle</b></a>:
-A set of 796,825 oriented point samples with color (represented in PLY format) was obtained in the EPFL <a href="https://lgg.epfl.ch/statues.php">Scanning 3D Statues from Photos</a> course.<br>
-A reconstruction of the eagle can be obtained by calling:
-<blockquote><code>% PoissonRecon --in eagle.points.ply --out eagle.pr.ply --depth 10</code></blockquote>
-(with the RGBA color properties automatically detected from the .ply header).<BR>
-A reconstruction of the eagle that does not close up the holes can be obtained by first calling:
-<blockquote><code>% SSDRecon --in eagle.points.ply --out eagle.ssd.ply --depth 10 --density</code></blockquote>
-using the <b>--density</b> flag to indicate that density estimates should be output with the vertices of the mesh, and then calling:
-<blockquote><code>% SurfaceTrimmer --in eagle.ssd.ply --out eagle.ssd.trimmed.ply --trim 7</code></blockquote>
-to remove all subsets of the surface where the sampling density corresponds to a depth smaller than 7.<BR>
-This reconstruction can be chunked into cubes of size 4&times;4&times;4 by calling:
-<blockquote><code>% ChunkPly --in 1 eagle.ssd.trimmed.ply --out eagle.ssd.trimmed.chnks --width 4</code></blockquote>
-which partitions the reconstruction into 11 pieces.
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/torso.zip"><b>Torso</b></a>:
-A set of 3,488,432 (torso.points.ply) and an envelope (torso.envelope.ply).<br>
-A reconstruction of the torso that constrains the reconstruction to be contained within the envelope can be obtained by calling:
-<blockquote><code>% PoissonRecon --in torso.points.ply --envelope torso.envelope.ply --out torso.pr.ply --depth 10</code></blockquote>
-using the <b>--envelope</b> flag to specify the water-tight mesh constraining the reconstruction.<BR>
-</li>
-
+<li> Construct the framed samples:
+<blockquote><code>% Sample --type hopf_torus:3:0.5 --out ht.3.samples.ply</code></blockquote>
+<li> Reconstruct the implicit function:
+<blockquote><code>% ExteriorPoissonRecon --in 4 ht.3.samples.ply --out ht.3</code></blockquote>
+<LI> Extract the surface in 4D:
+<blockquote><code>% Visualize4D --in ht.3.grid --out ht.3.surface.4D.ply</code></blockquote>
+<LI> Stereographically project to a surface in 3D
+<blockquote><code>% Stereo --in ht.3.surface.4D.ply --out ht.3.surface.3D.ply</code></blockquote>
 </ol>
 
 </DETAILS>
 </dl>
 </ul>
+
 
 
 
