@@ -264,12 +264,6 @@ This optional quadruple of floating point values specifies the 4D axis of stereo
 The default value for this argument is 0, 0, 0, 1.
 </dd>
 
-<dt>[<b>--normalize</b>]</dt>
-<dd>
-If enabled, the vertices of the 4D mesh are translated and scaled to lie on the sphere.
-</dd>
-
-
 </DETAILS>
 </dl>
 </ul>

@@ -45,7 +45,7 @@ Misha::CmdLineParameter< std::string > Out( "out" );
 Misha::CmdLineParameter< std::string > SampleType( "type" );
 Misha::CmdLineParameter< unsigned int > SampleResolution( "res" , 1024 );
 Misha::CmdLineParameter< double > AngularNoise( "aNoise" , 0. ) , PositionalNoise( "pNoise" , 0. );
-Misha::CmdLineReadable RegularSample( "regular" ) , NoNormalize( "noNormalize" );
+Misha::CmdLineReadable RegularSample( "regular" );
 
 Misha::CmdLineReadable* params[] =
 {
@@ -55,7 +55,6 @@ Misha::CmdLineReadable* params[] =
 	&RegularSample ,
 	&AngularNoise ,
 	&PositionalNoise ,
-	&NoNormalize ,
 	NULL
 };
 
@@ -70,7 +69,6 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <positional noise sigma (in voxels)>=%f]\n" , PositionalNoise.name.c_str() , PositionalNoise.value );
 	printf( "\t[--%s <output file>]\n" , Out.name.c_str() );
 	printf( "\t[--%s]\n" , RegularSample.name.c_str() );
-	printf( "\t[--%s]\n" , NoNormalize.name.c_str() );
 }
 
 template< unsigned int Dim >
@@ -175,16 +173,16 @@ void AddNoise( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetri
 template< unsigned int Dim >
 void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > hermiteData )
 {
-	// Map the samples into the unit cube
-	SquareMatrix< double , Dim+1 > unitCubeToWorld;
 
-	SquareMatrix< double , Dim+1 > worldToUnitCube = ToUnitCube< Dim >( [&]( unsigned int idx ){ return hermiteData[idx].first; } , hermiteData.size() );
-	for( unsigned int i=0 ; i<hermiteData.size() ; i++ ) hermiteData[i].first = worldToUnitCube( hermiteData[i].first );
-	unitCubeToWorld = worldToUnitCube.inverse();
+	// Add noise (after remapping to the unit cube)
+	{
+		SquareMatrix< double , Dim+1 > worldToUnitCube = ToUnitCube< Dim >( [&]( unsigned int idx ){ return hermiteData[idx].first; } , hermiteData.size() );
+		SquareMatrix< double , Dim+1 > unitCubeToWorld  = worldToUnitCube.inverse();
 
-	AddNoise( hermiteData );
-
-	if( NoNormalize.set ) for( unsigned int i=0 ; i<hermiteData.size() ; i++ ) hermiteData[i].first = unitCubeToWorld( hermiteData[i].first );
+		for( unsigned int i=0 ; i<hermiteData.size() ; i++ ) hermiteData[i].first = worldToUnitCube( hermiteData[i].first );
+		AddNoise( hermiteData );
+		for( unsigned int i=0 ; i<hermiteData.size() ; i++ ) hermiteData[i].first = unitCubeToWorld( hermiteData[i].first );
+	}
 
 	// generate skew symmetric matrix header
 	std::vector< std::pair< std::string, VertexFactory::TypeOnDisk > > plyPropertyList( Hat::SkewSymmetricMatrix< double , Dim >::Dim );
