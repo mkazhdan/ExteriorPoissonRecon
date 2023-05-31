@@ -34,7 +34,7 @@ This software supports reconstruction of co-dimension two manifolds.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>Sample</b></font>:
-Generates a sampling of points and frames from co-dimension two manifolds in 3D and 4D.
+Generates a sampling of points and frames (encoded as the entries of a skew-symmetric matrix) from co-dimension two manifolds in 3D and 4D.
 </SUMMARY>
 
 <dt><b>--type</b> &lt;<i>input geometry type</i>&gt;</dt>
@@ -90,7 +90,7 @@ The default value for this parameter is 0.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>ExteriorPoissonRecon</b></font>:
-Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
+Reconstructs a co-dimension two manifold from a sampling of points and frames (encoded as the entries of a skew-symmetric matrix).
 </SUMMARY>
 
 <dt><b>--in</b> &lt;<i>dimension, input points and frames</i>&gt;</dt>
