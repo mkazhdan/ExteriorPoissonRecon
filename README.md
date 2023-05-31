@@ -34,10 +34,10 @@ This software supports reconstruction of co-dimension two manifolds.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>Sample</b></font>:
-Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
+Generates a sampling of points and frames from co-dimension two manifolds in 3D and 4D.
 </SUMMARY>
-<dt>
-<b>--type</b> &lt;<i>input geometry type</i>&gt;</dt>
+
+<dt><b>--type</b> &lt;<i>input geometry type</i>&gt;</dt>
 <dd>
 This string specifies the type of geometry the points should be sampled from. Supported types include:
 <UL>
@@ -48,7 +48,8 @@ This string specifies the type of geometry the points should be sampled from. Su
 <LI><code>torus_knot:&lt;p&gt;:&lt;q&gt;</code>: Points lie on a (<code>p</code>,<code>q</code>) torus-knot 
 <LI><code>borromean_rings</code>: Points lie on interlocking Borromean rings
 <LI><code>clifford_torus</code>: Points lie on the Clifford torus
-<LI><code>hopf_torus:&lt;n&gt;:&lt;a&gt;</code>: Points lie on the Hopf torus with <code>n</code> nodes and amplitude <code>a</code>. (Reasonable values for amplitude are in the range [0.1,0.5].)
+<LI><code>hopf_torus:&lt;n&gt;:&lt;a&gt;</code>: Points lie on the Hopf torus with <code>n</code> nodes and amplitude <code>a</code>.<BR>
+Reasonable values for amplitude are in the range [0.1,0.5].
 </UL>
 </dd>
 
@@ -78,6 +79,65 @@ The default value for this parameter is 0.
 <dt>[<b>--regular</b>]</dt>
 <dd>If enabled, samples will be obtained by regularly sampling in parameter space.</dd>
 
+</DETAILS>
+</dl>
+</ul>
+
+<!--------------------->
+
+<ul>
+<dl>
+<DETAILS>
+<SUMMARY>
+<font size="+1"><b>ExteriorPoissonRecon</b></font>:
+Generates a sampling of points from co-dimension two manifolds in 3D and 4D.
+</SUMMARY>
+
+<dt><b>--in</b> &lt;<i>dimension, input points and frames</i>&gt;</dt>
+<dd>
+This integer/string pair value specifies the dimension in which the points are embedded and the name of the file containing the points.
+</dd>
+
+<dt><b>[--out</b> &lt;<i>grid header</i>&gt;</dt>]
+<dd>
+This string value specifies the header for the grid files describing the estimated density distribution and the reconstructed implicit function.<br>
+The density will be output to the file <code>&lt;grid header&gt;.density.grid</code> and the reconstructed implicit function will be output to the file <code>&lt;grid header&gt;.grid</code>.
+</dd>
+
+<dt>[<b>--depth &lt;reconstruction depth&gt;</B>]</dt>
+<dd>
+This integer value is the depth of the grid that will be used for reconstruction.
+Running at depth <i>d</i> corresponds to solving on a grid whose resolution is than <i>2^D x 2^d x ... </i>.<br>
+The default value for this parameter is 5.
+</dd>
+
+<dt>[<b>--sWeight &lt;screening weight&gt;</B>]</dt>
+<dd>
+This floating point value is the screening weight used for reconstruction.<br>
+The default value for this parameter is 50.
+</dd>
+
+<dt>[<b>--dWeight &lt;Dirichlet weight&gt;</B>]</dt>
+<dd>
+This floating point value is the Dirichlet weight used for reconstruction.<br>
+The default value for this parameter is 0.003125.
+</dd>
+
+<dt>[<B>--scale &lt;scale factor&gt;]</dt>
+<dd>
+This floating point value specifies the ratio between the diameter of the cube used for reconstruction and the diameter of the samples' bounding cube.<br>
+The default value is 1.1.
+</dd>
+
+<dt>[<b>--verbose &lt;verbosity&gt;</b>]
+<dd>
+This integer value specifies the level of verbosity of the executable's output to the command prompt.
+<UL>
+<LI>0: No ooutput
+<LI>1: Global residual error
+<LI>2: Residual error after each level of the multigrid hierarchy 
+</UL>
+</dd>
 
 </DETAILS>
 </dl>
