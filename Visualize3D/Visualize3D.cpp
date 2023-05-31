@@ -43,16 +43,17 @@ DAMAGE.
 static const unsigned int Dim = 3;
 static const unsigned int CoDim = 2;
 
-Misha::CmdLineParameter< std::string > In( "in" ) , OutHeader( "out" ) , Density( "density" );
-Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) , Tubular( "tubular" , 0.5 );
+Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" ) , LevelSets( "levelSets" ) , Density( "density" );
+Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) , TubularRadius( "tubular" , 0. );
 Misha::CmdLineReadable NoOrient( "noOrient" ) , Verbose( "verbose" );
 
 Misha::CmdLineReadable* params[] =
 {
 	&In ,
-	&OutHeader ,
+	&Out ,
+	&LevelSets ,
 	&Density ,
-	&Tubular ,
+	&TubularRadius ,
 	&TrimDensity ,
 	&NoOrient ,
 	&Verbose ,
@@ -64,9 +65,9 @@ void ShowUsage( const char* ex )
 	printf( "Usage %s:\n" , ex );
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
 	printf( "\t[--%s <input density>]\n" , Density.name.c_str() );
-	printf( "\t[--%s <output header>]\n" , OutHeader.name.c_str() );
+	printf( "\t[--%s <output geometry>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <trimming density>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
-	printf( "\t[--%s <tubular radius>=%f]\n" , Tubular.name.c_str() , Tubular.value );
+	printf( "\t[--%s <tubular radius (in voxel units)>=%f]\n" , TubularRadius.name.c_str() , TubularRadius.value );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
@@ -105,8 +106,6 @@ int main( int argc , char* argv[] )
 	grid.read( In.value , voxelToWorld );
 	unsigned int depth = GridDepth( grid );
 	double scale = pow( voxelToWorld(0,0) * voxelToWorld(1,1) * voxelToWorld(2,2) , 1./3 );
-
-	if( !Tubular.set ) Tubular.value = pow( 2. , depth-6. );
 
 	double densityScale = 1. / ( 1<<depth );
 	if( Density.set )
@@ -247,52 +246,51 @@ int main( int argc , char* argv[] )
 	for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );
 
 	// Output the mesh
-	if( Tubular.value>0 )
+	if( Out.set )
 	{
-		static const unsigned int AngularSamples = 12;
-		std::vector< Point< double , Dim > > vertices( levelSet.vertices.size() * AngularSamples );
-		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
+		if( TubularRadius.value>0 )
 		{
-			Point< double , Dim > n[] = { frame[0][i] + frame[1][i] , frame[0][i] - frame[1][i] };
-			n[0] /= sqrt( n[0].squareNorm() );
-			n[1] /= sqrt( n[1].squareNorm() );
-			for( unsigned int j=0 ; j<AngularSamples ; j++ )
+			static const unsigned int AngularSamples = 12;
+			std::vector< Point< double , Dim > > vertices( levelSet.vertices.size() * AngularSamples );
+			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
 			{
-				double theta = ( 2. * M_PI * j ) / AngularSamples;
-				vertices[ i*AngularSamples + j ] = levelSet.vertices[i] + ( n[0] * cos( theta ) + n[1] * sin( theta ) ) * Tubular.value * scale;
+				Point< double , Dim > n[] = { frame[0][i] + frame[1][i] , frame[0][i] - frame[1][i] };
+				n[0] /= sqrt( n[0].squareNorm() );
+				n[1] /= sqrt( n[1].squareNorm() );
+				for( unsigned int j=0 ; j<AngularSamples ; j++ )
+				{
+					double theta = ( 2. * M_PI * j ) / AngularSamples;
+					vertices[ i*AngularSamples + j ] = levelSet.vertices[i] + ( n[0] * cos( theta ) + n[1] * sin( theta ) ) * TubularRadius.value * scale;
+				}
 			}
-		}
-		std::vector< std::vector< int > > quads( levelSet.simplexIndices.size() * AngularSamples );
-		for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
-			for( unsigned int j=0 ; j<AngularSamples ; j++ )
-			{
-				quads[ i*AngularSamples + j ].resize( 4 );
-				quads[ i*AngularSamples + j ][0] = levelSet.simplexIndices[i][0] * AngularSamples + ( j + 0 ) % AngularSamples;
-				quads[ i*AngularSamples + j ][1] = levelSet.simplexIndices[i][0] * AngularSamples + ( j + 1 ) % AngularSamples;
-				quads[ i*AngularSamples + j ][2] = levelSet.simplexIndices[i][1] * AngularSamples + ( j + 1 ) % AngularSamples;
-				quads[ i*AngularSamples + j ][3] = levelSet.simplexIndices[i][1] * AngularSamples + ( j + 0 ) % AngularSamples;
-			}
+			std::vector< std::vector< int > > quads( levelSet.simplexIndices.size() * AngularSamples );
+			for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
+				for( unsigned int j=0 ; j<AngularSamples ; j++ )
+				{
+					quads[ i*AngularSamples + j ].resize( 4 );
+					quads[ i*AngularSamples + j ][0] = levelSet.simplexIndices[i][0] * AngularSamples + ( j + 0 ) % AngularSamples;
+					quads[ i*AngularSamples + j ][1] = levelSet.simplexIndices[i][0] * AngularSamples + ( j + 1 ) % AngularSamples;
+					quads[ i*AngularSamples + j ][2] = levelSet.simplexIndices[i][1] * AngularSamples + ( j + 1 ) % AngularSamples;
+					quads[ i*AngularSamples + j ][3] = levelSet.simplexIndices[i][1] * AngularSamples + ( j + 0 ) % AngularSamples;
+				}
 
-		if( OutHeader.set )
-		{
-			std::string fileName = OutHeader.value + ".tubular.ply";
 			using Factory = VertexFactory::PositionFactory< double , Dim >;
 			Factory factory;
-			PLY::WritePolygons< Factory , int >( fileName , factory , vertices , quads , PLY_BINARY_NATIVE );
+			PLY::WritePolygons< Factory , int >( Out.value , factory , vertices , quads , PLY_BINARY_NATIVE );
 		}
-	}
-
-	// Output the curve
-	if( OutHeader.set )
-	{
-		std::string fileName = OutHeader.value + ".lns";
-		FILE* fp = fopen( fileName.c_str() , "w" );
-		for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
+		else
 		{
-			Point< double , Dim > v1 = levelSet.vertices[ levelSet.simplexIndices[i][0] ] , v2 = levelSet.vertices[ levelSet.simplexIndices[i][1] ];
-			fprintf( fp , "%f %f %f  %f %f %f\n" , v1[0] , v1[1] , v1[2] , v2[0] , v2[1] , v2[2] );
+			std::vector< std::vector< int > > edges( levelSet.simplexIndices.size() );
+			for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
+			{
+				edges[i].resize( 2 );
+				edges[i][0] = levelSet.simplexIndices[i][0];
+				edges[i][1] = levelSet.simplexIndices[i][1];
+			}
+			using Factory = VertexFactory::PositionFactory< double , Dim >;
+			Factory factory;
+			PLY::WritePolygons< Factory , int >( Out.value , factory , levelSet.vertices , edges , PLY_BINARY_NATIVE );
 		}
-		fclose( fp );
 	}
 
 	// Output the level sets
@@ -317,7 +315,7 @@ int main( int argc , char* argv[] )
 		for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ ) xLevelSet.vertices[i] = voxelToWorld( xLevelSet.vertices[i] );
 		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ ) yLevelSet.vertices[i] = voxelToWorld( yLevelSet.vertices[i] );
 
-		if( OutHeader.set )
+		if( LevelSets.set )
 		{
 			using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::RGBColorFactory< double > >;
 			using Vertex = Factory::VertexType;
@@ -357,12 +355,10 @@ int main( int argc , char* argv[] )
 				simplices.push_back( _si );
 			}
 
-			std::string fileName = OutHeader.value + ".ply";
 			Factory factory;
-			PLY::WriteTriangles< Factory , int >( fileName , factory , vertices , simplices , PLY_BINARY_NATIVE );
+			PLY::WriteTriangles< Factory , int >( LevelSets.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
 		}
 	}
-
 
 
 	return EXIT_SUCCESS;

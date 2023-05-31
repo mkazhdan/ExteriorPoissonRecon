@@ -166,22 +166,12 @@ This optional string value is the file-name of the grid sampling the density val
 If this argument is not provided, no density-based trimming is performed.
 </dd>
 
-<dt>[<b>--out</b> &lt;<i>output geometry header</i>&gt;]</dt>
+<dt>[<b>--out</b> &lt;<i>output curve</i>&gt;]</dt>
 <dd>
-This optional string value specifies the header for the geometry.<br>
-The zero level-sets of the two implicit functions will be output to the file <code>&lt;geometry header&gt;.ply</code>,
-the dilated curve will be output to <code>&lt;geometry header&gt;.tubular.ply</code>,
-and the curve itself will be output to the file <code>&lt;geometry header&gt;.lns</code>.<br>
-The first two files will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, with the first outputting vertices with color.
-The last file will be a raw ASCII file with six floating point values per line, representing the set of edges comprising the curve.<br>
+This optional string value specifies the file to which the extracted level-set will be written.<br>
+The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.<br>
 If this argument is not provided, no output is generated.
-</dd>
-
-<dt>[<b>--tubular</b> &lt;<i>tubular radius</i>&gt;]</dt>
-<dd>
-This optional non-negative floating point value specifies the radius of the dilated curve in units of voxels.<br>
-If the value is zero, the dilated curve will not be output.<br>
-The default value for this argument is 0.5.
 </dd>
 
 <dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
@@ -276,7 +266,7 @@ The default value for this argument is 0, 0, 0, 1.
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize3D / Visualize4D / Stereo</b></font>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize3D</b></font>
 </SUMMARY>
 For testing purposes, four point sets are provided:
 <ol>
@@ -326,6 +316,64 @@ using the <b>--envelope</b> flag to specify the water-tight mesh constraining th
 </DETAILS>
 </dl>
 </ul>
+
+<!--------------------->
+
+<ul>
+<dl>
+<DETAILS>
+<SUMMARY>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize4D / Stereo</b></font>
+</SUMMARY>
+For testing purposes, four point sets are provided:
+<ol>
+
+<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/horse.npts"><b>Horse</b></a>:
+A set of 100,000 oriented point samples (represented in ASCII format) was obtained by sampling a virtual horse model with a sampling density proportional to curvature, giving a set of non-uniformly distributed points.<br>
+The surface of the model can be reconstructed by calling the either Poisson surface reconstructor:
+<blockquote><code>% PoissonRecon --in horse.npts --out horse.ply --depth 10</code></blockquote>
+or the SSD surface reconstructor
+<blockquote><code>% SSDRecon --in horse.npts --out horse.ply --depth 10</code></blockquote>
+</li>
+
+<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/bunny.points.ply"><b>Bunny</b></a>:
+A set of 362,271 oriented point samples (represented in PLY format) was obtained by merging the data from the original Stanford Bunny
+<a href="ftp://graphics.stanford.edu/pub/3Dscanrep/bunny.tar.gz">range scans</a>. The orientation of the sample points was estimated
+using the connectivity information within individual range scans.<br>
+The original (unscreened) Poisson reconstruction can be obtained by setting the point interpolation weight to zero:
+<blockquote><code>% PoissonRecon --in bunny.points.ply --out bunny.ply --depth 10 --pointWeight 0</code></blockquote>
+By default, the Poisson surface reconstructor uses degree-2 B-splines. A more efficient reconstruction can be obtained using degree-1 B-splines:
+<blockquote><code>% PoissonRecon --in bunny.points.ply --out bunny.ply --depth 10 --pointWeight 0 --degree 1</code></blockquote>
+(The SSD reconstructor requires B-splines of degree at least 2 since second derivatives are required to formulate the bi-Laplacian energy.)
+</li>
+
+<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/eagle.points.ply"><b>Eagle</b></a>:
+A set of 796,825 oriented point samples with color (represented in PLY format) was obtained in the EPFL <a href="https://lgg.epfl.ch/statues.php">Scanning 3D Statues from Photos</a> course.<br>
+A reconstruction of the eagle can be obtained by calling:
+<blockquote><code>% PoissonRecon --in eagle.points.ply --out eagle.pr.ply --depth 10</code></blockquote>
+(with the RGBA color properties automatically detected from the .ply header).<BR>
+A reconstruction of the eagle that does not close up the holes can be obtained by first calling:
+<blockquote><code>% SSDRecon --in eagle.points.ply --out eagle.ssd.ply --depth 10 --density</code></blockquote>
+using the <b>--density</b> flag to indicate that density estimates should be output with the vertices of the mesh, and then calling:
+<blockquote><code>% SurfaceTrimmer --in eagle.ssd.ply --out eagle.ssd.trimmed.ply --trim 7</code></blockquote>
+to remove all subsets of the surface where the sampling density corresponds to a depth smaller than 7.<BR>
+This reconstruction can be chunked into cubes of size 4&times;4&times;4 by calling:
+<blockquote><code>% ChunkPly --in 1 eagle.ssd.trimmed.ply --out eagle.ssd.trimmed.chnks --width 4</code></blockquote>
+which partitions the reconstruction into 11 pieces.
+
+<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/torso.zip"><b>Torso</b></a>:
+A set of 3,488,432 (torso.points.ply) and an envelope (torso.envelope.ply).<br>
+A reconstruction of the torso that constrains the reconstruction to be contained within the envelope can be obtained by calling:
+<blockquote><code>% PoissonRecon --in torso.points.ply --envelope torso.envelope.ply --out torso.pr.ply --depth 10</code></blockquote>
+using the <b>--envelope</b> flag to specify the water-tight mesh constraining the reconstruction.<BR>
+</li>
+
+</ol>
+
+</DETAILS>
+</dl>
+</ul>
+
 
 
 
