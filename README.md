@@ -221,14 +221,11 @@ This optional string value is the file-name of the grid sampling the density val
 If this argument is not provided, no density-based trimming is performed.
 </dd>
 
-<dt>[<b>--out</b> &lt;<i>geometry header</i>&gt;]</dt>
+<dt>[<b>--out</b> &lt;<i>output mesh</i>&gt;]</dt>
 <dd>
-This optional string value specifies the header for the geometry.<br>
-The zero level-sets of the two implicit functions will be output to the file <code>&lt;geometry header&gt;.ply</code>,
-the dilated curve will be output to <code>&lt;geometry header&gt;.tubular.ply</code>,
-and the curve itself will be output to the file <code>&lt;geometry header&gt;.lns</code>.<br>
-The first two files will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, with the first outputting vertices with color.
-The last file will be a raw ASCII file with six floating point values per line, representing the set of edges comprising the curve.<br>
+This optional string value specifies the file to which the extracted level-set will be written.<br>
+The file will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+with x-, y-, z-, and w-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and <i>w</i>.<br>
 If this argument is not provided, no output is generated.
 </dd>
 

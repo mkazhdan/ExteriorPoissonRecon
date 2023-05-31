@@ -43,14 +43,14 @@ static const unsigned int Dim = 4;
 static const unsigned int CoDim = 2;
 
 
-Misha::CmdLineParameter< std::string > In( "in" ) , OutHeader( "out" ) , Density( "density" );
+Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" ) , Density( "density" );
 Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) ;
 Misha::CmdLineReadable NoOrient( "noOrient" ) , Verbose( "verbose" );
 
 Misha::CmdLineReadable* params[] =
 {
 	&In ,
-	&OutHeader ,
+	&Out ,
 	&Density ,
 	&TrimDensity ,
 	&NoOrient ,
@@ -62,7 +62,7 @@ void ShowUsage( const char* ex )
 {
 	printf( "Usage %s:\n" , ex );
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
-	printf( "\t[--%s <output header>]\n" , OutHeader.name.c_str() );
+	printf( "\t[--%s <output mesh>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <density grid>]\n" , Density.name.c_str() );
 	printf( "\t[--%s <trim value>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
 	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
@@ -173,13 +173,12 @@ int main( int argc , char* argv[] )
 		return rgb * 255.;
 	};
 
-	if( OutHeader.set )
+	if( Out.set )
 	{
-		std::string fileName = OutHeader.value + ".4D.ply";
 		using Factory = VertexFactory::PositionFactory< double , Dim >;
 		using Vertex = Factory::VertexType;
 		Factory factory;
-		PLY::WriteTriangles< Factory , unsigned int >( fileName , factory , levelSet.vertices , levelSet.simplexIndices , PLY_BINARY_NATIVE );
+		PLY::WriteTriangles< Factory , unsigned int >( Out.value , factory , levelSet.vertices , levelSet.simplexIndices , PLY_BINARY_NATIVE );
 	}
 
 	return EXIT_SUCCESS;
