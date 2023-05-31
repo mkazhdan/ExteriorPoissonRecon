@@ -131,7 +131,7 @@ This optional floating point value specifies the ratio between the diameter of t
 The default value is 1.1.
 </dd>
 
-<dt>[<b>--verbose</b> &lt;<i>verbosity</i>&gt;</b>]
+<dt>[<b>--verbosity</b> &lt;<i>verbosity</i>&gt;</b>]
 <dd>
 This optional integer value specifies the level of verbosity of the executable's output to the command prompt.
 <UL>
@@ -190,12 +190,6 @@ This optional non-negative floating point value specifies the density that must 
 The default value for this argument is 0.0.
 </dd>
 
-<dt>[<b>--verbose</b>]</dt>
-<dd>
-Enabling this flag provides a more verbose description of the running times and memory usages of individual components of the curve extraction.
-</dd>
-
-
 </DETAILS>
 </dl>
 </ul>
@@ -234,12 +228,6 @@ If this argument is not provided, no output is generated.
 This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
 The default value for this argument is 0.0.
 </dd>
-
-<dt>[<b>--verbose</b>]</dt>
-<dd>
-Enabling this flag provides a more verbose description of the running times and memory usages of individual components of the surface extraction.
-</dd>
-
 
 </DETAILS>
 </dl>
@@ -294,7 +282,7 @@ If enabled, the vertices of the 4D mesh are translated and scaled to lie on the 
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize3D / Visualize4D</b></font>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize3D / Visualize4D / Stereo</b></font>
 </SUMMARY>
 For testing purposes, four point sets are provided:
 <ol>
