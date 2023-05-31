@@ -143,15 +143,76 @@ This integer value specifies the level of verbosity of the executable's output t
 </dl>
 </ul>
 
-
-<hr>
-<a name="USAGE"><b>USAGE EXAMPLES (WITH SAMPLE DATA)</b></a><br>
+<!--------------------->
 
 <ul>
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>PoissonRecon / SSDRecon / SurfaceTrimmer / ChunkPly</b></font>
+<font size="+1"><b>Visualize3D</b></font>:
+Reconstructs a co-dimension two manifold from a sampling of points and frames (encoded as the entries of a skew-symmetric matrix).
+</SUMMARY>
+
+<dt><b>--in</b> &lt;<i>dimension, input points and frames</i>&gt;</dt>
+<dd>
+This integer/string pair value specifies the dimension in which the points are embedded and the name of the file containing the points.
+</dd>
+
+<dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
+<dd>
+This string value specifies the header for the grid files describing the estimated density distribution and the reconstructed implicit function.<br>
+The density will be output to the file <code>&lt;grid header&gt;.density.grid</code> and the reconstructed implicit function will be output to the file <code>&lt;grid header&gt;.grid</code>.
+</dd>
+
+<dt>[<b>--depth</b> &lt;<i>reconstruction depth</i>&gt;]</dt>
+<dd>
+This integer value is the depth of the grid that will be used for reconstruction.
+Running at depth <i>d</i> corresponds to solving on a grid whose resolution is than <i>2^D x 2^d x ... </i>.<br>
+The default value for this parameter is 5.
+</dd>
+
+<dt>[<b>--sWeight</b> &lt;<i>screening weight</i>&gt;]</dt>
+<dd>
+This floating point value is the screening weight used for reconstruction.<br>
+The default value for this parameter is 50.
+</dd>
+
+<dt>[<b>--dWeight</b> &lt;<i>Dirichlet weight</i>&gt;]</dt>
+<dd>
+This floating point value is the Dirichlet weight used for reconstruction.<br>
+The default value for this parameter is 0.003125.
+</dd>
+
+<dt>[<b>--scale</b> &lt;<i>scale factor</i>&gt;]</dt>
+<dd>
+This floating point value specifies the ratio between the diameter of the cube used for reconstruction and the diameter of the samples' bounding cube.<br>
+The default value is 1.1.
+</dd>
+
+<dt>[<b>--verbose</b> &lt;<i>verbosity</i>&gt;</b>]
+<dd>
+This integer value specifies the level of verbosity of the executable's output to the command prompt.
+<UL>
+<LI>0: No ooutput
+<LI>1: Global residual error
+<LI>2: Residual error after each level of the multigrid hierarchy 
+</UL>
+</dd>
+
+</DETAILS>
+</dl>
+</ul>
+
+<!--------------------->
+
+<hr>
+<a name="USAGE"><b>USAGE EXAMPLES</b></a><br>
+
+<ul>
+<dl>
+<DETAILS>
+<SUMMARY>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize3D / Visualize4D</b></font>
 </SUMMARY>
 For testing purposes, four point sets are provided:
 <ol>
@@ -202,107 +263,6 @@ using the <b>--envelope</b> flag to specify the water-tight mesh constraining th
 </dl>
 </ul>
 
-
-<ul>
-<dl>
-<DETAILS>
-<SUMMARY>
-<font size="+1"><b>PoissonReconServer / PoissonReconClient</b></font>
-</SUMMARY>
-For testing purposes, two point sets are provided:
-<ol>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/eagle.points.ply"><b>Eagle</b></a>:
-A set of 796,825 oriented point samples with color was obtained in the EPFL <a href="https://lgg.epfl.ch/statues.php">Scanning 3D Statues from Photos</a> course.<br>
-Assuming the point-set is placed in the <b>networked</b> file <code>&lt;in dir&gt;</CODE> and that a <b>networked</b> temporary folder <code>&lt;temp dir&gt;</code> exists, a distributed reconstruction of the eagle over 4 clients at depth 10, outputting the reconstruction to <code>eagle.ply</code> (relative to the directory from the server is run), can be obtained by calling:
-<blockquote><code>% PoissonReconServer --count 4 --depth 10 --in &lt;in dir&gt;/eagle.points.ply --tempDir &lt;temp dir&gt;/temp --out eagle.ply </code></blockquote>
-(with the RGBA color properties automatically detected from the .ply header).<BR>
-This will initiate the server which will output the address and port for the clients to connect to:
-<blockquote><code>Server Address: &lt;IPv4 address&gt;:&lt;port&gt;</code></blockquote>
-The four clients can then be executed by connecting them to the server:
-<blockquote><code>% PoissonReconClient --port &lt;port&gt; --address &lt;IPv4 address&gt;</code></blockquote>
-<blockquote><code>% PoissonReconClient --port &lt;port&gt; --address &lt;IPv4 address&gt;</code></blockquote>
-<blockquote><code>% PoissonReconClient --port &lt;port&gt; --address &lt;IPv4 address&gt;</code></blockquote>
-<blockquote><code>% PoissonReconClient --port &lt;port&gt; --address &lt;IPv4 address&gt;</code></blockquote>
-Alternatively, the four clients can be executed serially:
-<blockquote><code>% PoissonReconClient --port &lt;port&gt; --address &lt;IPv4 address&gt; --multi 4</code></blockquote>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/SafraSquare.points.ply"><b>Safra Square</b></a>:
-For testing purposes, the <A HREF="10163.points.ply">Safra-Square</A> point set, containing 2,364,268,059 oriented point samples with color, has been generously provided by <A HREF="https://www.resonai.com/">Resonai</A>.
-</li>
-
-</ol>
-
-</DETAILS>
-</dl>
-</ul>
-
-<ul>
-<dl>
-<DETAILS>
-<SUMMARY>
-<font size="+1"><b>PointInterpolant / AdaptiveTreeVisualization</b></font>
-</SUMMARY>
-For testing purposes, a pair of point-sets is provided:
-<ol>
-
-<li> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/quadratic.2D.fitting.samples"><b>fitting samples</b></a>:
-A set of 1000 random 2D samples from within the square [-1,1,]x[-1,1] along with the evaluation of the quadratic <i>f(x,y)=x*x+y*y</i> at each sample point (represented in ASCII format).
-<LI> <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/quadratic.2D.evaluation.samples"><b>evaluation samples</b></a>:
-A set of 4 2D positions at which the fit function is to be evaluated (represented in ASCII format).
-</ol>
-
-The function fitting the input samples can be by calling the point interpolant:
-<blockquote><code>% PointInterpolant --inValues quadratic.2D.fitting.samples --tree quadratic.2D.tree --dim 2</code></blockquote>
-Then, the reconstructed function can be evaluated at the evaluation samples by calling the adaptive tree visualization:
-<blockquote><code>% AdaptiveTreeVisualization --in quadratic.2D.tree --samples quadratic.2D.evaluation.samples</code></blockquote>
-This will output the evaluation positions and values:
-<blockquote><CODE>0 0 1.33836e-05</CODE></blockquote>
-<blockquote><CODE>0.5 0 0.25001</CODE></blockquote>
-<blockquote><CODE>0.5 0.5 0.500006</CODE></blockquote>
-<blockquote><CODE>2 2 nan</CODE></blockquote>
-Note that because the (last) evaluation position (2,2) is outside the bounding box of the fitting samples, the function cannot be evaluated at this point and a value of "nan" is output.
-</DETAILS>
-</dl>
-</ul>
-
-<ul>
-<dl>
-<DETAILS>
-<SUMMARY>
-<font size="+1"><b>ImageStitching</b></font>
-</SUMMARY>
-For testing purposes, two panoramas are provided: <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/Jaffa.zip"><b>Jaffa</b></a> (23794 x 9492 pixels) and <a href="https://www.cs.jhu.edu/~misha/Code/PoissonRecon/OldRag.zip"><b>OldRag</b></a> (87722 x 12501 pixels).
-
-A seamless panorama can be obtained by running:
-<blockquote><code>% ImageSitching --in pixels.png labels.png --out out.png</code></blockquote>
-
-</DETAILS>
-</dl>
-</ul>
-
-
-<ul>
-<dl>
-<DETAILS>
-<SUMMARY>
-<font size="+1"><b>EDTInHeat / AdaptiveTreeVisualization</b></font>
-</SUMMARY>
-The Euclidean Distance Tranform of the reconstructed horse can be obtained by running:
-<blockquote><code>% EDTInHeat --in horse.ply --out horse.edt --depth 9</code></blockquote>
-Then, the visualization code can be used to extract iso-surfaces from the implicit function.<BR>
-To obtain a visualization near the input surface, use an iso-value close to zero:
-<blockquote><code>% AdaptiveTreeVisualization.exe --in horse.edt --mesh horse_0.01_.ply --iso 0.01 --flip</code></blockquote>
-(By default, the surface is aligned so that the outward facing normal aligns with the negative gradient. Hence, specifying the <CODE>--flip</CODE> flag is used to re-orient the surface.)<BR>
-To obtain a visualization closer to the boundary of the bounding box, use an iso-value close to zero:
-<blockquote><code>% AdaptiveTreeVisualization.exe --in horse.edt --mesh horse_0.25_.ply --iso 0.25 --flip</code></blockquote>
-(Since the default <CODE>--scale</CODE> is 2, a value of 0.25 should still give a surface that is contained within the bounding box.)<BR>
-To obtain a sampling of the implicit function over a regular grid:
-<blockquote><code>% AdaptiveTreeVisualization.exe --in horse.edt --grid horse.grid</code></blockquote>
-
-</DETAILS>
-</dl>
-</ul>
 
 
 <hr>
