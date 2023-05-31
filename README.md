@@ -56,7 +56,7 @@ Reasonable values for amplitude are in the range [0.1,0.5].
 <dt>[<b>--out</b> &lt;<i>output file name</i>&gt;]</dt>
 <dd>
 This optional string value specifies the name of the file to which the samples will be written.<br>
-The file will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
+The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
 with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i> and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
 encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.<br>
 If this argument is not provided, no output is generated.
@@ -155,24 +155,24 @@ This optional integer value specifies the level of verbosity of the executable's
 Extracts a curve from the reconstructed implicit function.
 </SUMMARY>
 
-<dt><b>--in</b> &lt;<i>implicit grid</i>&gt;</dt>
+<dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
 <dd>
 This string value is the file-name of the grid sampling the reconstructed implicit function.
 </dd>
 
-<dt>[<b>--density</b> &lt;<i>density grid</i>&gt;]</dt>
+<dt>[<b>--density</b> &lt;<i>input density grid</i>&gt;]</dt>
 <dd>
 This optional string value is the file-name of the grid sampling the density values.<br>
 If this argument is not provided, no density-based trimming is performed.
 </dd>
 
-<dt>[<b>--out</b> &lt;<i>geometry header</i>&gt;]</dt>
+<dt>[<b>--out</b> &lt;<i>output geometry header</i>&gt;]</dt>
 <dd>
 This optional string value specifies the header for the geometry.<br>
 The zero level-sets of the two implicit functions will be output to the file <code>&lt;geometry header&gt;.ply</code>,
 the dilated curve will be output to <code>&lt;geometry header&gt;.tubular.ply</code>,
 and the curve itself will be output to the file <code>&lt;geometry header&gt;.lns</code>.<br>
-The first two files will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, with the first outputting vertices with color.
+The first two files will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, with the first outputting vertices with color.
 The last file will be a raw ASCII file with six floating point values per line, representing the set of edges comprising the curve.<br>
 If this argument is not provided, no output is generated.
 </dd>
@@ -210,12 +210,12 @@ Enabling this flag provides a more verbose description of the running times and 
 Extracts a surface from the reconstructed implicit function.
 </SUMMARY>
 
-<dt><b>--in</b> &lt;<i>implicit grid</i>&gt;</dt>
+<dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
 <dd>
 This string value is the file-name of the grid sampling the reconstructed implicit function.
 </dd>
 
-<dt>[<b>--density</b> &lt;<i>density grid</i>&gt;]</dt>
+<dt>[<b>--density</b> &lt;<i>input density grid</i>&gt;]</dt>
 <dd>
 This optional string value is the file-name of the grid sampling the density values.<br>
 If this argument is not provided, no density-based trimming is performed.
@@ -224,7 +224,7 @@ If this argument is not provided, no density-based trimming is performed.
 <dt>[<b>--out</b> &lt;<i>output mesh</i>&gt;]</dt>
 <dd>
 This optional string value specifies the file to which the extracted level-set will be written.<br>
-The file will be written out in binary <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
 with x-, y-, z-, and w-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and <i>w</i>.<br>
 If this argument is not provided, no output is generated.
 </dd>
@@ -238,6 +238,47 @@ The default value for this argument is 0.0.
 <dt>[<b>--verbose</b>]</dt>
 <dd>
 Enabling this flag provides a more verbose description of the running times and memory usages of individual components of the surface extraction.
+</dd>
+
+
+</DETAILS>
+</dl>
+</ul>
+
+<!--------------------->
+
+<ul>
+<dl>
+<DETAILS>
+<SUMMARY>
+<font size="+1"><b>Stereo</b></font>:
+Replaces the vertices of a mesh in 4D with their positions in 3D after stereographic projection.
+</SUMMARY>
+
+<dt><b>--in</b> &lt;<i>input 4D mesh</i>&gt;</dt>
+<dd>
+This string value is the file-name of the input (4D) mesh.<br>
+The file is assumed to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+with x-, y-, z-, and w-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and <i>w</i>.
+</dd>
+
+<dt>[<b>--out</b> &lt;<i>output 3D mesh</i>&gt;]</dt>
+<dd>
+This string value is the file-name of the output (3D) mesh.<br>
+The will be written in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.<br>
+If this argument is not provided, no output is generated.
+</dd>
+
+<dt>[<b>--stereo</b> &lt;<i>x, y, z, and w</i>&gt;]</dt>
+<dd>
+This optional quadruple of floating point values specifies the 4D axis of stereographic projection.<br>
+The default value for this argument is 0, 0, 0, 1.
+</dd>
+
+<dt>[<b>--normalize</b>]</dt>
+<dd>
+If enabled, the vertices of the 4D mesh are translated and scaled to lie on the sphere.
 </dd>
 
 
