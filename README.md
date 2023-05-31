@@ -293,7 +293,7 @@ To reconstruct a (4,5) torus-knot one proceeds in three steps:
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize4D Stereo</b></font>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize4D / Stereo</b></font>
 </SUMMARY>
 
 To reconstruct a three-lobed Hopf Torus one proceeds in four steps:
