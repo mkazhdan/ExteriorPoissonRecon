@@ -18,17 +18,10 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="ExteriorPoissonRecon.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="ExteriorPoisson.h" />
-    <ClInclude Include="ExteriorPoissonSolvers.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}</ProjectGuid>
+    <ProjectGuid>{5bd9ab44-3886-4f83-9057-3920c848a886}</ProjectGuid>
     <RootNamespace>Stereo</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -136,6 +129,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Stereo.cpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

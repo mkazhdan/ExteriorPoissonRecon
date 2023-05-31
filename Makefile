@@ -2,6 +2,8 @@ EXTERIOR_POISSON_RECON_TARGET=ExteriorPoissonRecon
 EXTERIOR_POISSON_RECON_SOURCE=ExteriorPoissonRecon/ExteriorPoissonRecon.cpp
 SAMPLE_TARGET=Sample
 SAMPLE_SOURCE=Sample/Sample.cpp
+STEREO_TARGET=Stereo
+STEREO_SOURCE=Stereo/Stereo.cpp
 VISUALIZE_3D_TARGET=Visualize3D
 VISUALIZE_3D_SOURCE=Visualize3D/Visualize3D.cpp
 VISUALIZE_4D_TARGET=Visualize4D
@@ -36,6 +38,8 @@ EXTERIOR_POISSON_RECON_OBJECTS=$(addprefix $(BIN_O), $(addsuffix .o, $(basename 
 EXTERIOR_POISSON_RECON_OBJECT_DIR=$(dir $(EXTERIOR_POISSON_RECON_OBJECTS))
 SAMPLE_OBJECTS=$(addprefix $(BIN_O), $(addsuffix .o, $(basename $(SAMPLE_SOURCE))))
 SAMPLE_OBJECT_DIR=$(dir $(SAMPLE_OBJECTS))
+STEREO_OBJECTS=$(addprefix $(BIN_O), $(addsuffix .o, $(basename $(STEREO_SOURCE))))
+STEREO_OBJECT_DIR=$(dir $(STEREO_OBJECTS))
 VISUALIZE_3D_OBJECTS=$(addprefix $(BIN_O), $(addsuffix .o, $(basename $(VISUALIZE_3D_SOURCE))))
 VISUALIZE_3D_OBJECT_DIR=$(dir $(VISUALIZE_3D_OBJECTS))
 VISUALIZE_4D_OBJECTS=$(addprefix $(BIN_O), $(addsuffix .o, $(basename $(VISUALIZE_4D_SOURCE))))
@@ -44,6 +48,7 @@ VISUALIZE_4D_OBJECT_DIR=$(dir $(VISUALIZE_4D_OBJECTS))
 all: make_dirs
 all: $(BIN)$(EXTERIOR_POISSON_RECON_TARGET)
 all: $(BIN)$(SAMPLE_TARGET)
+all: $(BIN)$(STEREO_TARGET)
 all: $(BIN)$(VISUALIZE_3D_TARGET)
 all: $(BIN)$(VISUALIZE_4D_TARGET)
 
@@ -52,6 +57,9 @@ exteriorpoissonrecon: $(BIN)$(EXTERIOR_POISSON_RECON_TARGET)
 
 sample: make_dirs
 sample: $(BIN)$(SAMPLE_TARGET)
+
+stereo: make_dirs
+stereo: $(BIN)$(STEREO_TARGET)
 
 visualize3d: make_dirs
 visualize3d: $(BIN)$(VISUALIZE_3D_TARGET)
@@ -62,6 +70,7 @@ visualize4d: $(BIN)$(VISUALIZE_4D_TARGET)
 clean:
 	rm -rf $(BIN)$(EXTERIOR_POISSON_RECON_TARGET)
 	rm -rf $(BIN)$(SAMPLE_TARGET)
+	rm -rf $(BIN)$(STEREO_TARGET)
 	rm -rf $(BIN)$(VISUALIZE_3D_TARGET)
 	rm -rf $(BIN)$(VISUALIZE_4D_TARGET)
 	rm -rf $(BIN_O)
@@ -71,6 +80,7 @@ make_dirs: FORCE
 	$(MD) -p $(BIN_O)
 	$(MD) -p $(EXTERIOR_POISSON_RECON_OBJECT_DIR)
 	$(MD) -p $(SAMPLE_OBJECT_DIR)
+	$(MD) -p $(STEREO_OBJECT_DIR)
 	$(MD) -p $(VISUALIZE_3D_OBJECT_DIR)
 	$(MD) -p $(VISUALIZE_4D_OBJECT_DIR)
 
@@ -79,6 +89,9 @@ $(BIN)$(EXTERIOR_POISSON_RECON_TARGET): $(EXTERIOR_POISSON_RECON_OBJECTS)
 
 $(BIN)$(SAMPLE_TARGET): $(SAMPLE_OBJECTS)
 	$(CXX) -o $@ $(SAMPLE_OBJECTS) -L$(BIN) $(LFLAGS)
+
+$(BIN)$(STEREO_TARGET): $(STEREO_OBJECTS)
+	$(CXX) -o $@ $(STEREO_OBJECTS) -L$(BIN) $(LFLAGS)
 
 $(BIN)$(VISUALIZE_3D_TARGET): $(VISUALIZE_3D_OBJECTS)
 	$(CXX) -o $@ $(VISUALIZE_3D_OBJECTS) -L$(BIN) $(LFLAGS)

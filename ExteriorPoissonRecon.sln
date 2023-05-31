@@ -59,6 +59,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Autodiff", "Autodiff", "{36
 		Misha\AutoDiff\UIntPack.h = Misha\AutoDiff\UIntPack.h
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stereo", "..\..\..\Users\mkazh\OneDrive - Johns Hopkins\Research\ExteriorPoissonRecon\4Release\Stereo\Stereo.vcxproj", "{5BD9AB44-3886-4F83-9057-3920C848A886}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -99,6 +101,14 @@ Global
 		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Release|x64.Build.0 = Release|x64
 		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Release|x86.ActiveCfg = Release|Win32
 		{810F07AA-1AA3-44BF-AA35-58562DFB9A4C}.Release|x86.Build.0 = Release|Win32
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Debug|x64.ActiveCfg = Debug|x64
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Debug|x64.Build.0 = Debug|x64
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Debug|x86.ActiveCfg = Debug|Win32
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Debug|x86.Build.0 = Debug|Win32
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Release|x64.ActiveCfg = Release|x64
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Release|x64.Build.0 = Release|x64
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Release|x86.ActiveCfg = Release|Win32
+		{5BD9AB44-3886-4F83-9057-3920C848A886}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
