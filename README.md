@@ -34,7 +34,7 @@ This software supports reconstruction of co-dimension two manifolds.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>Sample</b></font>:
-Generates a sampling of points and frames (encoded as the entries of a skew-symmetric matrix) from co-dimension two manifolds in 3D and 4D.
+Generates a sampling of points and frames (encoded as the linearized entries of the upper triangle of a skew-symmetric matrix) from co-dimension two manifolds in 3D and 4D.
 </SUMMARY>
 
 <dt><b>--type</b> &lt;<i>input geometry type</i>&gt;</dt>
@@ -96,9 +96,9 @@ The default value for this parameter is 0.
 Reconstructs an implicit function, sampled over a regular grid with two values per grid cell, from a sampling of points and frames (encoded as the entries of a skew-symmetric matrix).
 </SUMMARY>
 
-<dt><b>--in</b> &lt;<i>dimension, input points and frames</i>&gt;</dt>
+<dt><b>--in</b> &lt;<i>input points and frames</i>&gt;</dt>
 <dd>
-This integer/string pair value specifies the dimension in which the points are embedded and the name of the file containing the points.
+This string value specifies the name of the file containing the points and frames.
 </dd>
 
 <dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
@@ -155,7 +155,7 @@ The default value is 0.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>Visualize3D</b></font>:
-Extracts a curve from the reconstructed implicit function.
+Extracts a curve from the reconstructed implicit function grid.
 </SUMMARY>
 
 <dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
@@ -194,7 +194,7 @@ The default value for this argument is 0.0.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>Visualize4D</b></font>:
-Extracts a surface from the reconstructed implicit function.
+Extracts a surface from the reconstructed implicit function grid.
 </SUMMARY>
 
 <dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
@@ -278,7 +278,7 @@ To reconstruct a (4,5) torus-knot one proceeds in three steps:
 <li> Construct the framed samples:
 <blockquote><code>% Sample --type torus_knot:4:5 --out tk.4.5.samples.ply</code></blockquote>
 <li> Reconstruct the implicit function:
-<blockquote><code>% ExteriorPoissonRecon --in 3 tk.4.5.samples.ply --out tk.4.5</code></blockquote>
+<blockquote><code>% ExteriorPoissonRecon --in tk.4.5.samples.ply --out tk.4.5</code></blockquote>
 <LI> Extract the curve:
 <blockquote><code>% Visualize3D --in tk.4.5.grid --density tk.4.5.density.grid --out tk.4.5.curve.ply --trimDensity 2</code></blockquote>
 </ol>
@@ -302,7 +302,7 @@ To reconstruct a three-lobed Hopf Torus one proceeds in four steps:
 <li> Construct the framed samples:
 <blockquote><code>% Sample --type hopf_torus:3:0.5 --out ht.3.samples.ply</code></blockquote>
 <li> Reconstruct the implicit function:
-<blockquote><code>% ExteriorPoissonRecon --in 4 ht.3.samples.ply --out ht.3</code></blockquote>
+<blockquote><code>% ExteriorPoissonRecon --in ht.3.samples.ply --out ht.3</code></blockquote>
 <LI> Extract the surface in 4D:
 <blockquote><code>% Visualize4D --in ht.3.grid --out ht.3.surface.4D.ply</code></blockquote>
 <LI> Stereographically project to a surface in 3D
@@ -337,4 +337,4 @@ To reconstruct a three-lobed Hopf Torus one proceeds in four steps:
 <LI>We are extremely grateful to the EPFL <a href="https://lgg.epfl.ch/statues.php">Scanning 3D Statues from Photos</a> course, the <A HREF="http://graphics.stanford.edu/data/3Dscanrep/">Stanford 3D Scanning Repository</A>, and <A HREF="https://www.resonai.com/">Resonai</A> for sharing their data.
 <LI>This work was carried out at the <A HREF="https://www.arch.jhu.edu/">Advanced Research Computing at Hopkins (ARCH)</A> core facility, which is supported by the National Science Foundation (NSF) grant number <A HREF="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1920103">1920103</A>.
 </UL>
---<
+-->

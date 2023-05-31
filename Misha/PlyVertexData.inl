@@ -168,6 +168,23 @@ namespace VertexFactory
 		else for( size_t i=0 ; i<sz ; i++ ) WriteBinary( fp , typeOnDisk , s[i] );
 	}
 
+	//////////////
+	// _Factory //
+	//////////////
+	template< typename _VertexType , typename FactoryType >
+	bool _Factory< _VertexType , FactoryType >::plyValidReadProperties( const std::vector< PlyProperty > &plyProperties ) const
+	{
+		for( unsigned int i=0 ; i<plyReadNum() ; i++ )
+		{
+			std::string name = plyReadProperty(i).name;
+			bool hasProperty = false;
+			for( unsigned int j=0 ; j<plyProperties.size() ; j++ ) hasProperty |= name==plyProperties[j].name;
+			if( !hasProperty ) return false;
+		}
+		return true;
+	}
+
+
 	/////////////////////
 	// PositionFactory //
 	/////////////////////
@@ -307,6 +324,20 @@ namespace VertexFactory
 		return PlyProperty( _PlyNames[idx] , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
 	}
 
+	template< typename Real >
+	bool RGBColorFactory< Real >::plyValidReadProperties( const std::vector< PlyProperty > &plyProperties ) const
+	{
+		for( int d=0 ; d<3 ; d++ )
+		{
+			std::string name1 = plyReadProperty(d).name , name2 = plyReadProperty(d+3).name;
+			bool hasProperty = false;
+			for( unsigned int j=0 ; j<plyProperties.size() ; j++ ) hasProperty |= plyProperties[j].name==name1 || plyProperties[j].name==name2;
+			if( !hasProperty ) return false;
+		}
+		return true;
+	}
+
+
 	template< typename Real > const std::string RGBColorFactory< Real >::_PlyNames[] = { "red" , "green" , "blue" , "r" , "g" , "b" };
 
 	//////////////////////
@@ -336,6 +367,19 @@ namespace VertexFactory
 	{
 		if( idx>=plyWriteNum() ) ERROR_OUT( "write property out of bounds" );
 		return PlyProperty( _PlyNames[idx] , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
+	}
+
+	template< typename Real >
+	bool RGBAColorFactory< Real >::plyValidReadProperties( const std::vector< PlyProperty > &plyProperties ) const
+	{
+		for( int d=0 ; d<4 ; d++ )
+		{
+			std::string name1 = plyReadProperty(d).name , name2 = plyReadProperty(d+4).name;
+			bool hasProperty = false;
+			for( unsigned int j=0 ; j<plyProperties.size() ; j++ ) hasProperty |= plyProperties[j].name==name1 || plyProperties[j].name==name2;
+			if( !hasProperty ) return false;
+		}
+		return true;
 	}
 
 	template< typename Real > const std::string RGBAColorFactory< Real >::_PlyNames[] = { "red" , "green" , "blue" , "alpha" , "r" , "g" , "b" , "a" };

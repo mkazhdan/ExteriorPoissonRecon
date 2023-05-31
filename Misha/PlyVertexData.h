@@ -78,6 +78,7 @@ namespace VertexFactory
 		virtual unsigned int  plyReadNum( void ) const = 0;
 		virtual unsigned int plyWriteNum( void ) const = 0;
 		virtual bool plyValidReadProperties( const bool *flags ) const = 0;
+		virtual bool plyValidReadProperties( const std::vector< PlyProperty > &plyProperties ) const;
 
 		virtual PlyProperty  plyReadProperty( unsigned int idx ) const = 0;
 		virtual PlyProperty plyWriteProperty( unsigned int idx ) const = 0;
@@ -105,6 +106,7 @@ namespace VertexFactory
 	struct EmptyFactory : _Factory< EmptyVectorType< Real > , EmptyFactory< Real > >
 	{
 		typedef typename _Factory< EmptyVectorType< Real > , EmptyFactory< Real > >::VertexType VertexType;
+		using _Factory< EmptyVectorType< Real > , EmptyFactory< Real > >::plyValidReadProperties;
 
 		struct Transform
 		{
@@ -117,7 +119,8 @@ namespace VertexFactory
 
 		unsigned int  plyReadNum( void ) const { return 0; }
 		unsigned int plyWriteNum( void ) const { return 0; }
-		bool plyValidReadProperties( const bool *flags ) const { return true ; }
+		bool plyValidReadProperties( const bool *flags ) const { return true; }
+
 		PlyProperty  plyReadProperty( unsigned int idx ) const { if( idx>= plyReadNum() ) ERROR_OUT(  "read property out of bounds" ) ; return PlyProperty(); }
 		PlyProperty plyWriteProperty( unsigned int idx ) const { if( idx>=plyWriteNum() ) ERROR_OUT( "write property out of bounds" ) ; return PlyProperty(); }
 		bool   readASCII( FILE *fp ,       VertexType &dt ) const { return true; }
@@ -142,6 +145,7 @@ namespace VertexFactory
 	struct PositionFactory : _Factory< Point< Real , Dim > , PositionFactory< Real , Dim > >
 	{
 		typedef typename _Factory< Point< Real , Dim > , PositionFactory< Real , Dim > >::VertexType VertexType;
+		using _Factory< Point< Real , Dim > , PositionFactory< Real , Dim > >::plyValidReadProperties;
 
 		struct Transform
 		{
@@ -186,6 +190,7 @@ namespace VertexFactory
 	struct NormalFactory : public _Factory< Point< Real , Dim > , NormalFactory< Real , Dim > >
 	{
 		typedef typename _Factory< Point< Real , Dim > , NormalFactory< Real , Dim > >::VertexType VertexType;
+		using _Factory< Point< Real , Dim > , NormalFactory< Real , Dim > >::plyValidReadProperties;
 
 		struct Transform
 		{
@@ -234,6 +239,7 @@ namespace VertexFactory
 	struct TextureFactory : public _Factory< Point< Real , Dim > , TextureFactory< Real , Dim > >
 	{
 		typedef typename _Factory< Point< Real , Dim > , TextureFactory< Real , Dim > >::VertexType VertexType;
+		using _Factory< Point< Real , Dim > , TextureFactory< Real , Dim > >::plyValidReadProperties;
 
 		struct Transform
 		{
@@ -288,6 +294,7 @@ namespace VertexFactory
 		unsigned int  plyReadNum( void ) const { return 6; }
 		unsigned int plyWriteNum( void ) const { return 3; }
 		bool plyValidReadProperties( const bool *flags ) const { for( int d=0 ; d<3 ; d++ ) if( !flags[d] && !flags[d+3] ) return false ; return true ; }
+		bool plyValidReadProperties( const std::vector< PlyProperty > &plyProperties ) const;
 		PlyProperty  plyReadProperty( unsigned int idx ) const;
 		PlyProperty plyWriteProperty( unsigned int idx ) const;
 		bool   readASCII( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >:: ReadASCII( fp , _typeOnDisk , 3 , &dt[0] ); }
@@ -328,6 +335,7 @@ namespace VertexFactory
 		unsigned int  plyReadNum( void ) const { return 8; }
 		unsigned int plyWriteNum( void ) const { return 4; }
 		bool plyValidReadProperties( const bool *flags ) const { for( int d=0 ; d<4 ; d++ ) if( !flags[d] && !flags[d+4] ) return false ; return true ; }
+		bool plyValidReadProperties( const std::vector< PlyProperty > &plyProperties ) const;
 		PlyProperty  plyReadProperty( unsigned int idx ) const;
 		PlyProperty plyWriteProperty( unsigned int idx ) const;
 		bool   readASCII( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >:: ReadASCII( fp , _typeOnDisk , 4 , &dt[0] ); }
@@ -355,6 +363,7 @@ namespace VertexFactory
 	struct ValueFactory : public _Factory< Real , ValueFactory< Real > >
 	{
 		typedef typename _Factory< Real , ValueFactory< Real > >::VertexType VertexType;
+		using _Factory< Real , ValueFactory< Real > >::plyValidReadProperties;
 
 		struct Transform
 		{
@@ -395,6 +404,7 @@ namespace VertexFactory
 	struct DynamicFactory : public _Factory< Point< Real , (unsigned int)-1 > , DynamicFactory< Real > >
 	{
 		typedef typename _Factory< Point< Real , (unsigned int)-1 > , DynamicFactory< Real > >::VertexType VertexType;
+		using _Factory< Point< Real , (unsigned int)-1 > , DynamicFactory< Real > >::plyValidReadProperties;
 
 		struct Transform
 		{
@@ -436,6 +446,7 @@ namespace VertexFactory
 	template< typename Real , typename ... Factories >
 	struct Factory : public _Factory< VectorTypeUnion< Real , typename Factories::VertexType ... > , Factory< Real , Factories ... > >
 	{
+		using _Factory< VectorTypeUnion< Real , typename Factories::VertexType ... > , Factory< Real , Factories ... > >::plyValidReadProperties;
 	protected:
 		typedef std::tuple< Factories ... > _FactoryTuple;
 	public:

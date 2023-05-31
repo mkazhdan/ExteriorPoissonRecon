@@ -47,22 +47,18 @@ static const unsigned int ProjectionIterations = 1000;
 static const double ProjectionEpslion = 1e-10;
 static const unsigned int CoDim = 2;
 
-Misha::CmdLineParameterArray< std::string , 2 > In( "in" );
-Misha::CmdLineParameter< std::string > InitialGuess( "inGuess" ) , Out( "out" );
-Misha::CmdLineParameter< unsigned int > RandomRotate( "rotate" );
+Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
 Misha::CmdLineParameter< double > NoiseToWeightSigma( "nSigma" , 0.25 );
-Misha::CmdLineParameter< unsigned int > Depth( "depth" , 5 ) , Seed( "seed" , 4 ) , TensorKernelRadius( "tRadius" , 1 ) , DensityKernelRadius( "dRadius" , 1 ) , Verbosity( "verbose" , 0 ) , MinSolveDepth( "minSolveDepth" , 0 ) , MaxSolveDepth( "maxSolveDepth" );
+Misha::CmdLineParameter< unsigned int > Depth( "depth" , 5 ) , Seed( "seed" , 0 ) , TensorKernelRadius( "tRadius" , 1 ) , DensityKernelRadius( "dRadius" , 1 ) , Verbosity( "verbose" , 0 ) , MinSolveDepth( "minSolveDepth" , 0 ) , MaxSolveDepth( "maxSolveDepth" );
 Misha::CmdLineParameter< double > Scale( "scale" , 1.1 ) , ScreeningWeight( "sWeight" , 50. ) , DirichletWeight( "dWeight" , 0.003125 ) , Jitter( "jitter" , 0 );
 Misha::CmdLineReadable SingleLevel( "singleLevel" ) , FullMultiGrid( "fmg" ) , NoCascadic( "noCascadic" ) , ReCenter( "reCenter" ) , Project( "project" );
 Misha::CmdLineParameter< unsigned int > GSIterations( "gsIters" , 10 ) , VCycles( "vCycles" , 1 );
 Misha::CmdLineParameter< double > IterationMultiplier( "iMult" , 2. );
 Misha::CmdLineReadable ForceHierarchical( "hierarchical" ) , Separate( "separate" );
-Misha::CmdLineParameter< std::string > SampleType( "type" );
 
 Misha::CmdLineReadable* params[] =
 {
 	&In ,
-	&InitialGuess ,
 	&Out ,
 	&Depth ,
 	&Seed ,
@@ -79,7 +75,6 @@ Misha::CmdLineReadable* params[] =
 	&IterationMultiplier ,
 	&MinSolveDepth ,
 	&MaxSolveDepth ,
-	&RandomRotate ,
 	&NoCascadic ,
 	&FullMultiGrid ,
 	&Separate ,
@@ -93,8 +88,7 @@ Misha::CmdLineReadable* params[] =
 void ShowUsage( const char* ex )
 {
 	printf( "Usage %s:\n" , ex );
-	printf( "\t --%s <dimension , input points and frames>\n" , In.name.c_str() );
-	printf( "\t[--%s <initial guess>]\n" , InitialGuess.name.c_str() );
+	printf( "\t --%s <input points and frames>\n" , In.name.c_str() );
 	printf( "\t[--%s <output voxel grid header>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <grid depth>=%d]\n" , Depth.name.c_str() , Depth.value );
 	printf( "\t[--%s <minimum hierarchy solver depth>=%d]\n" , MinSolveDepth.name.c_str() , MinSolveDepth.value );
@@ -112,7 +106,6 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <iteration multiplier>=%f]\n" , IterationMultiplier.name.c_str() , IterationMultiplier.value );
 	printf( "\t[--%s]\n" , Separate.name.c_str() );
 	printf( "\t[--%s]\n" , ForceHierarchical.name.c_str() );
-	printf( "\t[--%s <random rotation seed>]\n" , RandomRotate.name.c_str() );
 	printf( "\t[--%s]\n" , SingleLevel.name.c_str() );
 	printf( "\t[--%s]\n" , NoCascadic.name.c_str() );
 	printf( "\t[--%s]\n" , FullMultiGrid.name.c_str() );
@@ -125,6 +118,9 @@ void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetric
 
 template< unsigned int Dim >
 std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > ReadSamples( std::string fileName );
+
+template< unsigned int Dim >
+bool ValidSampleFile( std::string fileName );
 
 int main( int argc , char* argv[] )
 {
@@ -141,17 +137,22 @@ int main( int argc , char* argv[] )
 		ReCenter.set = true;
 	}
 
-	bool useSingleCycleCascadic = VCycles.value==1 &&  !NoCascadic.set && !InitialGuess.set && !ForceHierarchical.set;
+	bool useSingleCycleCascadic = VCycles.value==1 &&  !NoCascadic.set && !ForceHierarchical.set;
 
 	Miscellany::Timer timer;
 
-	unsigned int dim = std::stoi( In.values[0] );
+	unsigned int dim;
+	if     ( ValidSampleFile<4>( In.value ) ) dim = 4;
+	else if( ValidSampleFile<3>( In.value ) ) dim = 3;
+	else ERROR_OUT( "Invalid sample file" );
+
+
 	if( useSingleCycleCascadic )
 	{
 		switch( dim )
 		{
-			case 3: Execute< 3 , SingleCycleCascadicSystemEnergy< 3 > >( ReadSamples< 3 >( In.values[1] ) ) ; break;
-			case 4: Execute< 4 , SingleCycleCascadicSystemEnergy< 4 > >( ReadSamples< 4 >( In.values[1] ) ) ; break;
+			case 3: Execute< 3 , SingleCycleCascadicSystemEnergy< 3 > >( ReadSamples< 3 >( In.value ) ) ; break;
+			case 4: Execute< 4 , SingleCycleCascadicSystemEnergy< 4 > >( ReadSamples< 4 >( In.value ) ) ; break;
 			default: ERROR_OUT( "Only dimensions 3 and 4 supported" );
 		}
 	}
@@ -159,8 +160,8 @@ int main( int argc , char* argv[] )
 	{
 		switch( dim )
 		{
-			case 3: Execute< 3 , HierarchicalSystemEnergy< 3 > >( ReadSamples< 3 >( In.values[1] ) ) ; break;
-			case 4: Execute< 4 , HierarchicalSystemEnergy< 4 > >( ReadSamples< 4 >( In.values[1] ) ) ; break;
+			case 3: Execute< 3 , HierarchicalSystemEnergy< 3 > >( ReadSamples< 3 >( In.value ) ) ; break;
+			case 4: Execute< 4 , HierarchicalSystemEnergy< 4 > >( ReadSamples< 4 >( In.value ) ) ; break;
 			default: ERROR_OUT( "Only dimensions 3 and 4 supported" );
 		}
 	}
@@ -180,17 +181,6 @@ void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetric
 	if( !MaxSolveDepth.set ) MaxSolveDepth.value = Depth.value;
 	MaxSolveDepth.value = std::min< int >( MaxSolveDepth.value , Depth.value );
 	MinSolveDepth.value = std::min< int >( MinSolveDepth.value , Depth.value );
-
-	if( RandomRotate.set )
-	{
-		srand( RandomRotate.value );
-		SquareMatrix< double , Dim > R = RandomRotationMatrix< double , Dim >();
-		for( unsigned int i=0 ; i<hermiteData.size() ; i++ )
-		{
-			hermiteData[i].first = R( hermiteData[i].first );
-			hermiteData[i].second = R * hermiteData[i].second() * R.transpose();
-		}
-	}
 
 	// Map the samples into the unit cube
 	SquareMatrix< double , Dim+1 > unitCubeToWorld;
@@ -232,19 +222,6 @@ void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetric
 
 	srand( Seed.value );
 
-	Eigen::VectorXd initialGuess[2];
-	if( InitialGuess.set )
-	{
-		ScalarFunctions< Dim > scalars( 1<< Depth.value );
-		initialGuess[0].resize( scalars.functionNum() ) , initialGuess[1].resize( scalars.functionNum() );
-		XForm< double , Dim+1 > xForm;
-		RegularGrid< Point< double , 2 > , Dim > guess;
-		guess.read( InitialGuess.value , xForm );
-		if( guess.resolution()!=scalars.functionNum() ) ERROR_OUT( "Resolutions don't match: " , guess.resolution() , " != " , scalars.functionNum() );
-		for( unsigned int i=0 ; i<guess.resolution() ; i++ ) initialGuess[0][i] = guess[i][0] , initialGuess[1][i] = guess[i][1];
-		if( Depth.value!=MaxSolveDepth.value ) ERROR_OUT( "Expected max solve depth to be equal to depth: " , Depth.value , " != " , MaxSolveDepth.value );
-	}
-
 	auto NoiseToWeight = []( double n ){ return exp( -n*n/(2.*NoiseToWeightSigma.value*NoiseToWeightSigma.value) ); };
 	timer.reset();
 	ExteriorPoisson::Reconstructor< Dim , Energy > recon
@@ -262,7 +239,7 @@ void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetric
 
 	std::pair< Eigen::VectorXd , Eigen::VectorXd > solution = recon.solve
 	(
-		InitialGuess.set ? initialGuess : NULL ,
+		NULL ,
 		NoCascadic.set , FullMultiGrid.set , SingleLevel.set , IterationMultiplier.value , 
 		VCycles.value , GSIterations.value , Separate.set , 
 		Verbosity.value
@@ -383,4 +360,13 @@ std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double
 		ifile.close();
 	}
 	return hermiteData;
+}
+
+template< unsigned int Dim >
+bool ValidSampleFile( std::string fileName )
+{
+	VertexFactory::PositionFactory< double , Dim > pFactory;
+	int fileType;
+	std::vector< PlyProperty > plyProperties = PLY::ReadVertexHeader( fileName , fileType );
+	return pFactory.plyValidReadProperties( plyProperties );
 }
