@@ -154,8 +154,8 @@ The default value is 0.
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Visualize3D</b></font>:
-Extracts a curve from the reconstructed implicit function grid.
+<font size="+1"><b>Extracts</b></font>:
+Extracts a co-dimension two manifold as a level set from the reconstructed implicit function grid.
 </SUMMARY>
 
 <dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
@@ -174,45 +174,6 @@ If this argument is not provided, no density-based trimming is performed.
 This optional string value specifies the file to which the extracted level-set will be written.<br>
 The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
 with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.<br>
-If this argument is not provided, no output is generated.
-</dd>
-
-<dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
-<dd>
-This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
-The default value for this argument is 0.0.
-</dd>
-
-</DETAILS>
-</dl>
-</ul>
-
-<!--------------------->
-
-<ul>
-<dl>
-<DETAILS>
-<SUMMARY>
-<font size="+1"><b>Visualize4D</b></font>:
-Extracts a surface from the reconstructed implicit function grid.
-</SUMMARY>
-
-<dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
-<dd>
-This string value is the file-name of the grid sampling the reconstructed implicit function.
-</dd>
-
-<dt>[<b>--density</b> &lt;<i>input density grid</i>&gt;]</dt>
-<dd>
-This optional string value is the file-name of the grid sampling the density values.<br>
-If this argument is not provided, no density-based trimming is performed.
-</dd>
-
-<dt>[<b>--out</b> &lt;<i>output mesh</i>&gt;]</dt>
-<dd>
-This optional string value specifies the file to which the extracted level-set will be written.<br>
-The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
-with x-, y-, z-, and w-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and <i>w</i>.<br>
 If this argument is not provided, no output is generated.
 </dd>
 
@@ -255,6 +216,45 @@ If this argument is not provided, no output is generated.
 <dd>
 This optional quadruple of floating point values specifies the 4D axis of stereographic projection.<br>
 The default value for this argument is 0, 0, 0, 1.
+</dd>
+
+</DETAILS>
+</dl>
+</ul>
+
+<!--------------------->
+
+<ul>
+<dl>
+<DETAILS>
+<SUMMARY>
+<font size="+1"><b>Dilate</b></font>:
+Extracts a surface from the reconstructed implicit function grid.
+</SUMMARY>
+
+<dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
+<dd>
+This string value is the file-name of the grid sampling the reconstructed implicit function.
+</dd>
+
+<dt>[<b>--density</b> &lt;<i>input density grid</i>&gt;]</dt>
+<dd>
+This optional string value is the file-name of the grid sampling the density values.<br>
+If this argument is not provided, no density-based trimming is performed.
+</dd>
+
+<dt>[<b>--out</b> &lt;<i>output mesh</i>&gt;]</dt>
+<dd>
+This optional string value specifies the file to which the extracted level-set will be written.<br>
+The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+with x-, y-, z-, and w-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and <i>w</i>.<br>
+If this argument is not provided, no output is generated.
+</dd>
+
+<dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
+<dd>
+This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
+The default value for this argument is 0.0.
 </dd>
 
 </DETAILS>
