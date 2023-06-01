@@ -29,7 +29,6 @@ DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-
 #include "Misha/Miscellany.h"
 #include "Misha/CmdLineParser.h"
 #include "Misha/Geometry.h"
@@ -37,15 +36,14 @@ DAMAGE.
 #include "Misha/PlyVertexData.h"
 #include "Misha/MarchingSimplices.h"
 #include "Misha/RegularGrid.h"
-
 #include "Include/Hat.h"
 
-static const unsigned int Dim = 3;
+#define OUTPUT_GRADIENTS
 static const unsigned int CoDim = 2;
 
 Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" ) , LevelSets( "levelSets" ) , Density( "density" );
-Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) , TubularRadius( "tubular" , 0. );
-Misha::CmdLineReadable NoOrient( "noOrient" ) , Verbose( "verbose" );
+Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) ;
+Misha::CmdLineReadable Verbose( "verbose" );
 
 Misha::CmdLineReadable* params[] =
 {
@@ -53,9 +51,7 @@ Misha::CmdLineReadable* params[] =
 	&Out ,
 	&LevelSets ,
 	&Density ,
-	&TubularRadius ,
 	&TrimDensity ,
-	&NoOrient ,
 	&Verbose ,
 	NULL
 };
@@ -64,14 +60,17 @@ void ShowUsage( const char* ex )
 {
 	printf( "Usage %s:\n" , ex );
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
-	printf( "\t[--%s <input density>]\n" , Density.name.c_str() );
-	printf( "\t[--%s <output geometry>]\n" , Out.name.c_str() );
+	printf( "\t[--%s <density grid>]\n" , Density.name.c_str() );
+	printf( "\t[--%s <output mesh>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <output level sets>]\n" , LevelSets.name.c_str() );
-	printf( "\t[--%s <trimming density>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
-	printf( "\t[--%s <tubular radius (in voxel units)>=%f]\n" , TubularRadius.name.c_str() , TubularRadius.value );
-	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
+	printf( "\t[--%s <trim value>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
+
+#ifdef OUTPUT_GRADIENTS
+const std::string GradientNames1[] = { "nx1" , "ny1" , "nz1" , "nw1" };
+const std::string GradientNames2[] = { "nx2" , "ny2" , "nz2" , "nw2" };
+#endif // OUTPUT_GRADIENTS
 
 template< typename Data , unsigned int Dim >
 unsigned int GridDepth( const RegularGrid< Data , Dim > &grid )
@@ -88,17 +87,10 @@ unsigned int GridDepth( const RegularGrid< Data , Dim > &grid )
 	return depth;
 }
 
-int main( int argc , char* argv[] )
+template< unsigned int Dim >
+void Execute( void )
 {
 	Miscellany::Timer timer;
-
-	Misha::CmdLineParse( argc-1 , argv+1 , params );
-	if( !In.set )
-	{
-		ShowUsage( argv[0] );
-		return EXIT_SUCCESS;
-	}
-
 
 	RegularGrid< Point< double , CoDim > , Dim > grid;
 	RegularGrid< double , Dim > density;
@@ -106,13 +98,16 @@ int main( int argc , char* argv[] )
 
 	grid.read( In.value , voxelToWorld );
 	unsigned int depth = GridDepth( grid );
-	double scale = pow( voxelToWorld(0,0) * voxelToWorld(1,1) * voxelToWorld(2,2) , 1./3 );
+	double scale = 1.;
+	for( unsigned int d=0 ; d<Dim ; d++ ) scale *= voxelToWorld(d,d);
+	scale = pow( scale , 1./Dim );
 
 	double densityScale = 1. / ( 1<<depth );
 	if( Density.set )
 	{
 		XForm< double , Dim+1 > xForm;
 		density.read( Density.value , xForm );
+		if( depth!=GridDepth( density ) ) ERROR_OUT( "Density resolution does not match: " , depth , " != " , GridDepth( density ) );
 		densityScale *= 1<<GridDepth( density );
 	}
 
@@ -130,75 +125,9 @@ int main( int argc , char* argv[] )
 	levelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return values[idx]; } , Point< double , CoDim >() );
 	if( Verbose.set ) std::cout << "Level set extracted: " << timer.elapsed() << " (s)" << std::endl;
 
-	if( !NoOrient.set )
 	{
 		Miscellany::Timer timer;
-		auto Wedge = [] ( Point< double , Dim > v1 , Point< double , Dim > v2 )
-		{
-			SquareMatrix< double , Dim > S;
-			for( unsigned int i=0 ; i<Dim ; i++ ) for( unsigned int j=0 ; j<Dim ; j++ ) S(i,j) = v1[i]*v2[j] - v1[j] * v2[i];
-			return S;
-		};
-
-		Point< double , Dim > frame[Dim];
-		for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
-		{
-			auto Orthogonalize = []( Point< double , Dim > frame[] , unsigned int i )
-			{
-				for( unsigned j=0 ; j<i ; j++ ) frame[i] -= Point< double , Dim >::Dot( frame[i] , frame[j] ) * frame[j];
-			};
-
-			SquareMatrix< double , Dim-CoDim > D;
-			for( unsigned int j=0 ; j<(Dim-CoDim) ; j++ ) for( unsigned int k=0 ; k<(Dim-CoDim) ; k++ )
-			{
-				Point< double , Dim > v1 = levelSet.vertices[ levelSet.simplexIndices[i][j+1] ] - levelSet.vertices[ levelSet.simplexIndices[i][0] ];
-				Point< double , Dim > v2 = levelSet.vertices[ levelSet.simplexIndices[i][k+1] ] - levelSet.vertices[ levelSet.simplexIndices[i][0] ];
-				D(j,k) = Point< double , Dim >::Dot( v1 , v2 );
-			}
-
-			// If the simplex is singular, skip
-			if( std::abs( D.determinant() )<1e-12 ){ WARN_ONCE( "Vanishing determinant: " , i ); }
-			else
-			{
-				// Get the orthonormal frame spanning the simplex
-				for( unsigned int j=0 ; j<(Dim-CoDim) ; j++ )
-				{
-					frame[j] = levelSet.vertices[ levelSet.simplexIndices[i][j+1] ] - levelSet.vertices[ levelSet.simplexIndices[i][0] ];
-					Orthogonalize( frame , j );
-					frame[j] /= sqrt( frame[j].squareNorm() );
-				}
-
-				// Get an orthonormal frame spanning the simplex normal
-				for( unsigned int j=Dim-CoDim ; j<Dim-1 ; j++ )
-				{
-					while( true )
-					{
-						frame[j] = RandomBallPoint< double , Dim >();
-						Orthogonalize( frame , j );
-						if( frame[j].squareNorm()>1e-10 )
-						{
-							frame[j] /= sqrt( frame[j].squareNorm() );
-							break;
-						}
-					}
-				}
-				frame[Dim-1] = Point< double , Dim >::CrossProduct( frame );
-				SquareMatrix< double , Dim > skew1 = Wedge( frame[Dim-2] , frame[Dim-1] );
-				Point< double , Dim > center;
-				for( unsigned int j=0 ; j<=(Dim-CoDim) ; j++ ) center += levelSet.vertices[ levelSet.simplexIndices[i][j] ];
-				center /= (Dim-CoDim+1);
-				Point< double , Dim > d1 , d2;
-				for( unsigned int d=0 ; d<Dim ; d++ )
-				{
-					Point< double , 2 > partial = grid.partial( d , center );
-					d1[d] = partial[0];
-					d2[d] = partial[1];
-				}
-
-				SquareMatrix< double , Dim > skew2 = Wedge( d1 , d2 );
-				if( SquareMatrix< double , Dim >::Dot( skew1 , skew2 )<0 ) std::swap( levelSet.simplexIndices[i][0] , levelSet.simplexIndices[i][1] );
-			}
-		}
+		MarchingSimplices::Orient( levelSet.simplexIndices );
 		std::cout << "Oriented: " << timer.elapsed() << " (s)" << std::endl;
 	}
 
@@ -222,6 +151,7 @@ int main( int argc , char* argv[] )
 		levelSet.simplexIndices = temp;
 	}
 
+#ifdef OUTPUT_GRADIENTS
 	std::vector< Point< double , Dim > > frame[2];
 	{
 		Hat::ScalarFunctions< Dim > scalars( 1<<depth );
@@ -235,63 +165,48 @@ int main( int argc , char* argv[] )
 			Point< double , CoDim > v = grid[i];
 			x[i] = v[0] , y[i] = v[1];
 		}
+		double r = (double)(1<<depth);
 		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
 		{
-			frame[0][i] = scalars.gradient( x , levelSet.vertices[i] / (double)(1<<depth ) );
-			frame[1][i] = scalars.gradient( y , levelSet.vertices[i] / (double)(1<<depth ) );
-			frame[0][i] /= sqrt( frame[0][i].squareNorm() );
-			frame[1][i] /= sqrt( frame[1][i].squareNorm() );
+			frame[0][i] = scalars.gradient( x , levelSet.vertices[i] / r ) / r / scale;
+			frame[1][i] = scalars.gradient( y , levelSet.vertices[i] / r ) / r / scale;
 		}
 	}
+#endif // OUTPUT_GRADIENTS
 
 	for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );
 
-	// Output the mesh
 	if( Out.set )
 	{
-		if( TubularRadius.value>0 )
+#ifdef OUTPUT_GRADIENTS
+		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim > >;
+		using Vertex = typename Factory::VertexType;
+		VertexFactory::PositionFactory< double , Dim > pFactory;
+		VertexFactory::StaticFactory< double , Dim > gFactory1( GradientNames1 );
+		VertexFactory::StaticFactory< double , Dim > gFactory2( GradientNames2 );
+		Factory factory( pFactory , gFactory1 , gFactory2 );
+#else // !OUTPUT_GRADIENTS
+		using Factory = VertexFactory::PositionFactory< double , Dim >;
+		Factory factory;
+#endif // OUTPUT_GRADIENTS
+		std::vector< std::vector< int > > simplices( levelSet.simplexIndices.size() );
+		for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
 		{
-			static const unsigned int AngularSamples = 12;
-			std::vector< Point< double , Dim > > vertices( levelSet.vertices.size() * AngularSamples );
-			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
-			{
-				Point< double , Dim > n[] = { frame[0][i] + frame[1][i] , frame[0][i] - frame[1][i] };
-				n[0] /= sqrt( n[0].squareNorm() );
-				n[1] /= sqrt( n[1].squareNorm() );
-				for( unsigned int j=0 ; j<AngularSamples ; j++ )
-				{
-					double theta = ( 2. * M_PI * j ) / AngularSamples;
-					vertices[ i*AngularSamples + j ] = levelSet.vertices[i] + ( n[0] * cos( theta ) + n[1] * sin( theta ) ) * TubularRadius.value * scale;
-				}
-			}
-			std::vector< std::vector< int > > quads( levelSet.simplexIndices.size() * AngularSamples );
-			for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
-				for( unsigned int j=0 ; j<AngularSamples ; j++ )
-				{
-					quads[ i*AngularSamples + j ].resize( 4 );
-					quads[ i*AngularSamples + j ][0] = levelSet.simplexIndices[i][0] * AngularSamples + ( j + 0 ) % AngularSamples;
-					quads[ i*AngularSamples + j ][1] = levelSet.simplexIndices[i][0] * AngularSamples + ( j + 1 ) % AngularSamples;
-					quads[ i*AngularSamples + j ][2] = levelSet.simplexIndices[i][1] * AngularSamples + ( j + 1 ) % AngularSamples;
-					quads[ i*AngularSamples + j ][3] = levelSet.simplexIndices[i][1] * AngularSamples + ( j + 0 ) % AngularSamples;
-				}
-
-			using Factory = VertexFactory::PositionFactory< double , Dim >;
-			Factory factory;
-			PLY::WritePolygons< Factory , int >( Out.value , factory , vertices , quads , PLY_BINARY_NATIVE );
+			simplices[i].resize( Dim-CoDim+1 );
+			for( unsigned int j=0 ; j<Dim-CoDim+1 ; j++ ) simplices[i][j] = (int)levelSet.simplexIndices[i][j];
 		}
-		else
+#ifdef OUTPUT_GRADIENTS
+		std::vector< Vertex > vertices( levelSet.vertices.size() );
+		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
 		{
-			std::vector< std::vector< int > > edges( levelSet.simplexIndices.size() );
-			for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
-			{
-				edges[i].resize( 2 );
-				edges[i][0] = levelSet.simplexIndices[i][0];
-				edges[i][1] = levelSet.simplexIndices[i][1];
-			}
-			using Factory = VertexFactory::PositionFactory< double , Dim >;
-			Factory factory;
-			PLY::WritePolygons< Factory , int >( Out.value , factory , levelSet.vertices , edges , PLY_BINARY_NATIVE );
+			vertices[i].template get<0>() = levelSet.vertices[i];
+			vertices[i].template get<1>() = frame[0][i];
+			vertices[i].template get<2>() = frame[1][i];
 		}
+		PLY::WritePolygons< Factory , int >( Out.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
+#else // !OUTPUT_GRADIENTS
+		PLY::WritePolygons< Factory , int >( Out.value , factory , levelSet.vertices , simplices , PLY_BINARY_NATIVE );
+#endif // OUTPUT_GRADIENTS
 	}
 
 	// Output the level sets
@@ -317,7 +232,7 @@ int main( int argc , char* argv[] )
 		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ ) yLevelSet.vertices[i] = voxelToWorld( yLevelSet.vertices[i] );
 
 		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::RGBColorFactory< double > >;
-		using Vertex = Factory::VertexType;
+		using Vertex = typename Factory::VertexType;
 
 		std::vector< Vertex > vertices;
 		std::vector< std::vector< int > > simplices;
@@ -357,7 +272,26 @@ int main( int argc , char* argv[] )
 		Factory factory;
 		PLY::WritePolygons< Factory , int >( LevelSets.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
 	}
+}
 
+int main( int argc , char* argv[] )
+{
+	Misha::CmdLineParse( argc-1 , argv+1 , params );
+	if( !In.set )
+	{
+		ShowUsage( argv[0] );
+		return EXIT_SUCCESS;
+	}
+
+
+	unsigned int dim;
+	if( !RegularGrid< double , 1 >::ReadDimension( In.value , dim ) ) ERROR_OUT( "Failed to read dimension: " , In.value );
+	switch( dim )
+	{
+		case 4: Execute< 4 >() ; break;
+		case 3: Execute< 3 >() ; break;
+		default: ERROR_OUT( "Only dimensions 3 and 4 supported" );
+	}
 
 	return EXIT_SUCCESS;
 }

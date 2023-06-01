@@ -19,7 +19,7 @@ const double DefaultStereographic[] = { 0 , 0 , 0 , 1 };
 
 Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
 Misha::CmdLineParameterArray< double , Dim > Stereographic( "stereo" , DefaultStereographic );
-Misha::CmdLineReadable Normalize( "normalize" ) , NoOrient( "noOrient" ) , Verbose( "verbose" );
+Misha::CmdLineReadable Normalize( "normalize" ) , Verbose( "verbose" );
 
 Misha::CmdLineReadable* params[] =
 {
@@ -27,7 +27,6 @@ Misha::CmdLineReadable* params[] =
 	&Out ,
 	&Normalize ,
 	&Stereographic ,
-	&NoOrient ,
 	&Verbose ,
 	NULL
 };
@@ -39,17 +38,12 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <output 3D mesh>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <stereographic projection axis>]\n" , Stereographic.name.c_str() );
 	printf( "\t[--%s]\n" , Normalize.name.c_str() );
-	printf( "\t[--%s]\n" , NoOrient.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
 
 // A mapping taking the sphere to the plane through the origin perpendicular to a
 Point< double , 4 > StereographicProjection( Point< double , 4 > p , Point< double , 4 > a );
-
-// Orients the triangles explicitly
-template< typename Index >
-void Orient( std::vector< SimplexIndex< 2 , Index > > &triangles );
 
 int main( int argc , char* argv[] )
 {
@@ -70,13 +64,6 @@ int main( int argc , char* argv[] )
 		Factory factory;
 		bool *propertiesFlag = NULL;
 		PLY::ReadTriangles< Factory , unsigned int >( In.value , factory , levelSet.vertices , levelSet.simplexIndices , propertiesFlag , file_type );
-	}
-
-	if( !NoOrient.set )
-	{
-		Miscellany::Timer timer;
-		MarchingSimplices::Orient( levelSet.simplexIndices );
-		std::cout << "Oriented: " << timer.elapsed() << " (s)" << std::endl;
 	}
 
 	if( Normalize.set )
@@ -181,82 +168,4 @@ Point< double , Dim > StereographicProjection( Point< double , Dim > p , Point< 
 	//	             = 0 if || p ||^2 = 0
 	a /= sqrt( a.squareNorm() );
 	return StereographicProjection( p , a , a/2 , 1. , true );
-}
-
-template< typename Index >
-void Orient( std::vector< SimplexIndex< 2 , Index > > &triangles )
-{
-	using EdgeIndex = MarchingSimplices::MultiIndex< 2 , Index >;
-	using EdgeMap = typename EdgeIndex::map;
-	struct EdgeData
-	{
-		Index t1 , t2;
-		EdgeData( void ) : t1(-1) , t2(-1) {}
-	};
-
-	EdgeMap eMap;
-
-	for( unsigned int i=0 ; i<triangles.size() ; i++ ) for( unsigned int j=0 ; j<3 ; j++ )
-	{
-		Index idx[] = { triangles[i][(j+1)%3] , triangles[i][(j+2)%3] };
-		eMap[ EdgeIndex( idx ) ] = 0;
-	}
-
-	Index count = 0;
-	for( auto iter=eMap.begin() ; iter!=eMap.end() ; iter++ ) iter->second = count++;
-
-	std::vector< EdgeData > eData( count );
-
-	for( unsigned int i=0 ; i<triangles.size() ; i++ ) for( unsigned int j=0 ; j<3 ; j++ )
-	{
-		Index idx[] = { triangles[i][(j+1)%3] , triangles[i][(j+2)%3] };
-		auto iter = eMap.find( EdgeIndex(idx)  );
-		if( iter==eMap.end() ) ERROR_OUT( "Could not find edge" );
-		if     ( eData[ iter->second ].t1==-1 ) eData[ iter->second ].t1 = i;
-		else if( eData[ iter->second ].t2==-1 ) eData[ iter->second ].t2 = i;
-		else ERROR_OUT( "Both triangles occupied" );
-	}
-
-	std::vector< bool > oriented( triangles.size() , false );
-	auto NeedsOrienting = [&]( void )
-	{
-		for( unsigned int i=0 ; i<oriented.size() ; i++ ) if( !oriented[i] ) return (Index)i;
-		return (Index)-1;
-	};
-
-	Index idx;
-	while( (idx=NeedsOrienting())!=-1 )
-	{
-		std::vector< Index > queue;
-		queue.push_back( idx );
-
-		while( queue.size() )
-		{
-			Index t = queue.back();
-			queue.pop_back();
-
-			for( unsigned int e=0 ; e<3 ; e++ )
-			{
-				Index idx[] = { triangles[t][(e+1)%3] , triangles[t][(e+2)%3] };
-				auto iter = eMap.find( EdgeIndex(idx)  );
-				if( iter==eMap.end() ) ERROR_OUT( "Could not find edge" );
-
-				Index _t = t==eData[ iter->second ].t1  ? eData[ iter->second ].t2 : eData[ iter->second ].t1;
-				if( _t==-1 || oriented[_t] ) continue;
-
-				int sign1=0 , sign2=0;
-				for( unsigned int j=0 ; j<3 ; j++ )
-				{
-					if     ( triangles[ t][(j+1)%3]==iter->first[0] && triangles[ t][(j+2)%3]==iter->first[1] ) sign1 =  1;
-					else if( triangles[ t][(j+1)%3]==iter->first[1] && triangles[ t][(j+2)%3]==iter->first[0] ) sign1 = -1;
-					if     ( triangles[_t][(j+1)%3]==iter->first[0] && triangles[_t][(j+2)%3]==iter->first[1] ) sign2 =  1;
-					else if( triangles[_t][(j+1)%3]==iter->first[1] && triangles[_t][(j+2)%3]==iter->first[0] ) sign2 = -1;
-				}
-				if( !sign1 || !sign2 ) ERROR_OUT( "Could not find orientations" );
-				if( sign1==sign2 ) std::swap( triangles[_t][0] , triangles[_t][1] );
-				oriented[_t] = true;
-				queue.push_back( _t );
-			}
-		}
-	}
 }

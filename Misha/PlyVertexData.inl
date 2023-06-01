@@ -258,6 +258,8 @@ namespace VertexFactory
 	template<> const std::string NormalFactory< double , 2 >::_PlyNames[] = { "nx" , "ny" };
 	template<> const std::string NormalFactory<  float , 3 >::_PlyNames[] = { "nx" , "ny" , "nz" };
 	template<> const std::string NormalFactory< double , 3 >::_PlyNames[] = { "nx" , "ny" , "nz" };
+	template<> const std::string NormalFactory<  float , 4 >::_PlyNames[] = { "nx" , "ny" , "nz" , "nw" };
+	template<> const std::string NormalFactory< double , 4 >::_PlyNames[] = { "nx" , "ny" , "nz" , "nw" };
 
 	////////////////////
 	// TextureFactory //
@@ -414,6 +416,49 @@ namespace VertexFactory
 	}
 
 	template< typename Real > const std::string ValueFactory< Real >::_PlyNames[] = { "value" };
+
+	///////////////////
+	// StaticFactory //
+	///////////////////
+	template< typename Real , unsigned int Dim >
+	StaticFactory< Real , Dim >::StaticFactory( const std::string plyNames[] , TypeOnDisk typeOnDisk ) : _typeOnDisk( typeOnDisk )
+	{
+		for( unsigned int d=0 ; d<Dim ; d++ ) _plyNames[d] = plyNames[d];
+	}
+
+	template< typename Real , unsigned int Dim >
+	PlyProperty StaticFactory< Real , Dim >::plyReadProperty( unsigned int idx ) const
+	{
+		if( idx>=Dim ) ERROR_OUT( "read property out of bounds" );
+		return PlyProperty( _plyNames[idx] , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , sizeof(Real)*idx );
+	}
+	template< typename Real , unsigned int Dim >
+	PlyProperty StaticFactory< Real , Dim >::plyWriteProperty( unsigned int idx ) const
+	{
+		if( idx>=Dim ) ERROR_OUT( "write property out of bounds" );
+		return PlyProperty( _plyNames[idx] , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , sizeof(Real)*idx );
+	}
+
+	template< typename Real , unsigned int Dim >
+	PlyProperty StaticFactory< Real , Dim >::plyStaticReadProperty( unsigned int idx ) const
+	{
+		if( idx>=Dim ) ERROR_OUT( "read property out of bounds" );
+		return PlyProperty( _plyNames[idx] , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
+	}
+	template< typename Real , unsigned int Dim >
+	PlyProperty StaticFactory< Real , Dim >::plyStaticWriteProperty( unsigned int idx ) const
+	{
+		if( idx>=Dim ) ERROR_OUT( "write property out of bounds" );
+		return PlyProperty( _plyNames[idx] , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
+	}
+
+	template< typename Real , unsigned int Dim >
+	bool StaticFactory< Real , Dim >::operator == ( const StaticFactory< Real , Dim > &factory ) const
+	{
+		if( _typeOnDisk!=factory._typeOnDisk ) return false;
+		for( int d=0 ; d<Dim ; d++ ) if( _plyNames[d]!=factory._plyNames[d] ) return false;
+		return true;
+	}
 
 	////////////////////
 	// DynamicFactory //

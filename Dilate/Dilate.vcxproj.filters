@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Visualize3D.cpp">
+    <ClCompile Include="Dilate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

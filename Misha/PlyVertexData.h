@@ -399,7 +399,49 @@ namespace VertexFactory
 		static const std::string _PlyNames[];
 	};
 
-	// The named array factory
+	// The statically named array factory
+	template< typename Real , unsigned int Dim >
+	struct StaticFactory : public _Factory< Point< Real , Dim > , StaticFactory< Real , Dim > >
+	{
+		typedef typename _Factory< Point< Real , Dim > , StaticFactory< Real , Dim > >::VertexType VertexType;
+		using _Factory< Point< Real , Dim > , StaticFactory< Real , Dim > >::plyValidReadProperties;
+
+		struct Transform
+		{
+			Transform( void ){}
+			template< typename XForm > Transform( XForm xForm ){}
+			VertexType operator()( VertexType dt ) const { return dt; }
+		};
+
+		VertexType operator()( void ) const { return Point< Real , Dim >(); }
+		unsigned int  plyReadNum( void ) const { return Dim; }
+		unsigned int plyWriteNum( void ) const { return Dim; }
+		bool plyValidReadProperties( const bool *flags ) const { for( int d=0 ; d<Dim ; d++ ) if( !flags[d] ) return false ; return true ; }
+		PlyProperty plyReadProperty( unsigned int idx ) const;
+		PlyProperty plyWriteProperty( unsigned int idx ) const;
+
+		bool   readASCII( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >:: ReadASCII( fp , _typeOnDisk , Dim , &dt[0] ); }
+		bool  readBinary( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >::ReadBinary( fp , _typeOnDisk , Dim , &dt[0] ); }
+		void  writeASCII( FILE *fp , const VertexType &dt ) const { VertexIO< Real >:: WriteASCII( fp , _typeOnDisk , Dim , &dt[0] ); }
+		void writeBinary( FILE *fp , const VertexType &dt ) const { VertexIO< Real >::WriteBinary( fp , _typeOnDisk , Dim , &dt[0] ); }
+
+		bool isStaticallyAllocated( void ) const{ return true; }
+		PlyProperty  plyStaticReadProperty( unsigned int idx ) const;
+		PlyProperty plyStaticWriteProperty( unsigned int idx ) const;
+
+		StaticFactory( const std::string plyNames[] , TypeOnDisk typeOnDisk=GetTypeOnDisk< Real >() );
+		size_t bufferSize( void ) const { return sizeof( VertexType ); }
+		void toBuffer( const VertexType &dt , char *buffer ) const { *( (VertexType*)buffer ) = dt; }
+		void fromBuffer( const char *buffer , VertexType &dt ) const { dt = *( (VertexType*)buffer ); }
+
+		bool operator == ( const StaticFactory &factory ) const;
+	protected:
+		TypeOnDisk _typeOnDisk;
+		std::string _plyNames[Dim];
+	};
+
+
+	// The dynamically named array factory
 	template< typename Real >
 	struct DynamicFactory : public _Factory< Point< Real , (unsigned int)-1 > , DynamicFactory< Real > >
 	{
