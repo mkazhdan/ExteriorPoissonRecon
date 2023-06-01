@@ -154,7 +154,7 @@ The default value is 0.
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Extracts</b></font>:
+<font size="+1"><b>Extract</b></font>:
 Extracts a co-dimension two manifold as a level set from the reconstructed implicit function grid.
 </SUMMARY>
 
@@ -163,23 +163,24 @@ Extracts a co-dimension two manifold as a level set from the reconstructed impli
 This string value is the file-name of the grid sampling the reconstructed implicit function.
 </dd>
 
+<dt>[<b>--out</b> &lt;<i>output simplicial mesh</i>&gt;]</dt>
+<dd>
+This optional string value specifies the file to which the extracted level-set will be written.<br>
+The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+with x-, y-, z-, and (for surfaces in 4D) w-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and (for surfaces in 4D) <i>w</i>.<br>
+If this argument is not provided, no output is generated.
+</dd>
+
 <dt>[<b>--density</b> &lt;<i>input density grid</i>&gt;]</dt>
 <dd>
 This optional string value is the file-name of the grid sampling the density values.<br>
 If this argument is not provided, no density-based trimming is performed.
 </dd>
 
-<dt>[<b>--out</b> &lt;<i>output curve</i>&gt;]</dt>
-<dd>
-This optional string value specifies the file to which the extracted level-set will be written.<br>
-The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
-with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.<br>
-If this argument is not provided, no output is generated.
-</dd>
-
 <dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
 <dd>
 This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
+The argument is iengored if the <b>--density</b> argument is not provided.<br>
 The default value for this argument is 0.0.
 </dd>
 
