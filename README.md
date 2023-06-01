@@ -98,7 +98,11 @@ Reconstructs an implicit function, sampled over a regular grid with two values p
 
 <dt><b>--in</b> &lt;<i>input points and frames</i>&gt;</dt>
 <dd>
-This string value specifies the name of the file containing the points and frames.
+This string value specifies the name of the file containing the points and frames.<br>
+The file is assumed to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
+with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i> and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
+encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.<br>
+If this argument is not provided, no output is generated.
 </dd>
 
 <dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
