@@ -212,7 +212,7 @@ with x-, y-, z-, and w-coordinates of the positions encoded by the properties <i
 <dt>[<b>--out</b> &lt;<i>output 3D mesh</i>&gt;]</dt>
 <dd>
 This string value is the file-name of the output (3D) mesh.<br>
-The will be written in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
 with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.<br>
 If this argument is not provided, no output is generated.
 </dd>
@@ -242,7 +242,7 @@ Dilate a curve in 3D into a tube.
 This string value is the file-name of the input (3D) curve.<br>
 The file is assumed to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
 with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.
-Additionally the frame at each point (defined by the gradients of the implicit function) are encoded by the properties
+Additionally the frame at each point (defined by the gradients of the implicit function) is encoded by the properties
 <i>nx1</i>, <i>ny1</i>, <i>nz1</i>, <i>nx1</i>, <i>ny1</i>, and <i>nz2</i>.
 </dd>
 
