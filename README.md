@@ -229,32 +229,30 @@ The default value for this argument is 0, 0, 0, 1.
 <DETAILS>
 <SUMMARY>
 <font size="+1"><b>Dilate</b></font>:
-Extracts a surface from the reconstructed implicit function grid.
+Dilate a curve in 3D into a tube.
 </SUMMARY>
 
-<dt><b>--in</b> &lt;<i>input implicit grid</i>&gt;</dt>
+<dt><b>--in</b> &lt;<i>input curve</i>&gt;</dt>
 <dd>
-This string value is the file-name of the grid sampling the reconstructed implicit function.
+This string value is the file-name of the input (3D) curve.<br>
+The file is assumed to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
+with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.
+Additionally the frame at each point (defined by the gradients of the implicit function) are encoded by the properties
+<i>nx1</i>, <i>ny1</i>, <i>nz1</i>, <i>nx1</i>, <i>ny1</i>, and <i>nz2</i>.
 </dd>
 
-<dt>[<b>--density</b> &lt;<i>input density grid</i>&gt;]</dt>
-<dd>
-This optional string value is the file-name of the grid sampling the density values.<br>
-If this argument is not provided, no density-based trimming is performed.
-</dd>
-
-<dt>[<b>--out</b> &lt;<i>output mesh</i>&gt;]</dt>
+<dt>[<b>--out</b> &lt;<i>output tube</i>&gt;]</dt>
 <dd>
 This optional string value specifies the file to which the extracted level-set will be written.<br>
 The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, 
-with x-, y-, z-, and w-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and <i>w</i>.<br>
+with x-, y-, z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>.<br>
 If this argument is not provided, no output is generated.
 </dd>
 
-<dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
+<dt>[<b>--radius</b> &lt;<i>tubular radius</i>&gt;]</dt>
 <dd>
-This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
-The default value for this argument is 0.0.
+This optional non-negative floating point value specifies the radius of the tube (in units of curve diameter).<br>
+The default value for this argument is 1/64.
 </dd>
 
 </DETAILS>
@@ -269,18 +267,20 @@ The default value for this argument is 0.0.
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize3D</b></font>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Extract / Dilate</b></font>
 </SUMMARY>
 
-To reconstruct a (4,5) torus-knot one proceeds in three steps:
+To reconstruct a dilated (4,5) torus-knot one proceeds in four steps:
 
 <ol>
 <li> Construct the framed samples:
 <blockquote><code>% Sample --type torus_knot:4:5 --out tk.4.5.samples.ply</code></blockquote>
 <li> Reconstruct the implicit function:
 <blockquote><code>% ExteriorPoissonRecon --in tk.4.5.samples.ply --out tk.4.5</code></blockquote>
-<LI> Extract the curve:
-<blockquote><code>% Visualize3D --in tk.4.5.grid --density tk.4.5.density.grid --out tk.4.5.curve.ply --trimDensity 2</code></blockquote>
+<LI> Extract the curves near regions of high sampling density:
+<blockquote><code>% Extract --in tk.4.5.grid --density tk.4.5.density.grid --out tk.4.5.curve.ply --trimDensity 2</code></blockquote>
+<LI> Dilate the curve:
+<blockquote><code>% Dilate --in tk.4.5.curve.ply --out tk.4.5.curve.dilated.ply</code></blockquote>
 </ol>
 
 </DETAILS>
@@ -293,7 +293,7 @@ To reconstruct a (4,5) torus-knot one proceeds in three steps:
 <dl>
 <DETAILS>
 <SUMMARY>
-<font size="+1"><b>Sample / ExteriorPoissonRecon / Visualize4D / Stereo</b></font>
+<font size="+1"><b>Sample / ExteriorPoissonRecon / Extract / Stereo</b></font>
 </SUMMARY>
 
 To reconstruct a three-lobed Hopf Torus one proceeds in four steps:

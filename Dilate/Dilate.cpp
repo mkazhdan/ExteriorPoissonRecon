@@ -59,8 +59,8 @@ Misha::CmdLineReadable* params[] =
 void ShowUsage( const char* ex )
 {
 	printf( "Usage %s:\n" , ex );
-	printf( "\t --%s <input grid>\n" , In.name.c_str() );
-	printf( "\t[--%s <output geometry>]\n" , Out.name.c_str() );
+	printf( "\t --%s <input curve>\n" , In.name.c_str() );
+	printf( "\t[--%s <output tube>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <tubular radius (in units of diameter)>=%f]\n" , TubularRadius.name.c_str() , TubularRadius.value );
 	printf( "\t[--%s <angular resolution>=%d]\n" , AngularResolution.name.c_str() , AngularResolution.value );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
