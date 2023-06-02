@@ -86,12 +86,9 @@ int main( int argc , char* argv[] )
 	MarchingSimplices::SimplicialMesh< Dim-CoDim , unsigned int , Point< double , Dim > > levelSet;
 
 	{
-		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim > >;
+		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::MatrixFactory< double , CoDim , Dim > >;
 		using Vertex = typename Factory::VertexType;
-		VertexFactory::PositionFactory< double , Dim > pFactory;
-		VertexFactory::StaticFactory< double , Dim > gFactory1( GradientNames1 );
-		VertexFactory::StaticFactory< double , Dim > gFactory2( GradientNames2 );
-		Factory factory( pFactory , gFactory1 , gFactory2 );
+		Factory factory( VertexFactory::PositionFactory< double , Dim >() , VertexFactory::MatrixFactory< double , CoDim , Dim >( "n" ) );
 
 		std::vector< std::vector< int > > edges;
 		std::vector< Vertex > vertices;
@@ -100,15 +97,13 @@ int main( int argc , char* argv[] )
 		PLY::ReadPolygons< Factory >( In.value , factory , vertices , edges , NULL , file_type );
 
 		levelSet.vertices.resize( vertices.size() );
-		frame[0].resize( vertices.size() );
-		frame[1].resize( vertices.size() );
+		for( unsigned int c=0 ; c<CoDim ; c++ ) frame[c].resize( vertices.size() );
 		levelSet.simplexIndices.resize( edges.size() );
-		
+
 		for( unsigned int i=0 ; i<vertices.size() ; i++ )
 		{
 			levelSet.vertices[i] = vertices[i].template get<0>();
-			frame[0][i] = vertices[i].template get<1>();
-			frame[1][i] = vertices[i].template get<2>();
+			for( unsigned int c=0 ; c<CoDim ; c++ ) for( unsigned int d=0 ; d<Dim ; d++ ) frame[c][i][d] = vertices[i].template get<1>()(c,d);
 		}
 
 		for( unsigned int i=0 ; i<edges.size() ; i++ )

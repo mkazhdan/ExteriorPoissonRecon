@@ -60,8 +60,8 @@ Reasonable values for amplitude are in the range [0.1,0.5].
 This optional string value specifies the name of the file to which the samples will be written.<br>
 The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
 with x-, y-, z-, and (for surfaces in 4D) w-coordinates of a sample's position encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and (for surfaces in 4D) <i>w</i>,
-and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
-encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.<br>
+and the orientation of the sample given by the coefficients of a skew-symmetric matrix,
+encoded by the properties <i>skew_0_0</i>,...,<i>skew_&lt;c&gt;_&lt;r&gt;</i> with <i>c,r=2</i> for curves in 3D and <i>c,r=3</i> for surfaces in 4D.<br>
 If this argument is not provided, no output is generated.
 </dd>
 
@@ -102,8 +102,8 @@ Reconstructs an implicit function, sampled over a regular grid with two values p
 This string value specifies the name of the file containing the points and frames.<br>
 The file is assumged to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
 with x-, y-, z-, and (for surfaces in 4D) w-coordinates of a sample's position encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and (for surfaces in 4D) <i>w</i>,
-and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
-encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.<br>
+and the orientation of the sample given by the coefficients of a skew-symmetric matrix,
+encoded by the properties <i>skew_0_0</i>,...,<i>skew_&lt;c&gt;_&lt;r&gt;</i> with <i>c,r=2</i> for curves in 3D and <i>c,r=3</i> for surfaces in 4D.<br>
 </dd>
 
 <dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>

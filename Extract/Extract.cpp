@@ -66,6 +66,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
+#if 0
 template< unsigned int Dim , unsigned int CoDim >
 std::vector< std::string > GradientNames( void )
 {
@@ -74,6 +75,7 @@ std::vector< std::string > GradientNames( void )
 	for( unsigned int c=0 ; c<CoDim ; c++ ) for( unsigned int d=0 ; d<Dim ; d++ ) names[d+c*Dim] = _names[d] + std::to_string( c+1 );
 	return names;
 }
+#endif
 
 Point< double , 3 > SurfaceColor( unsigned int idx )
 {
@@ -183,12 +185,9 @@ void Execute( void )
 
 	if( Out.set )
 	{
-		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim*CoDim > >;
+		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::MatrixFactory< double , CoDim , Dim > >;
 		using Vertex = typename Factory::VertexType;
-		VertexFactory::PositionFactory< double , Dim > pFactory;
-		std::vector< std::string > names = GradientNames< Dim , CoDim >();
-		VertexFactory::StaticFactory< double , Dim*CoDim > gFactory( &names[0] );
-		Factory factory( pFactory , gFactory );
+		Factory factory( VertexFactory::PositionFactory< double , Dim >() , VertexFactory::MatrixFactory< double , CoDim , Dim >( "n" ) );
 		std::vector< std::vector< int > > simplices( levelSet.simplexIndices.size() );
 		for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
 		{
@@ -199,7 +198,7 @@ void Execute( void )
 		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
 		{
 			vertices[i].template get<0>() = levelSet.vertices[i];
-			for( unsigned int c=0 ; c<CoDim ; c++ ) for( unsigned int d=0 ; d<Dim ; d++ ) vertices[i].template get<1>()[d+c*Dim] = frame[c][i][d];
+			for( unsigned int c=0 ; c<CoDim ; c++ ) for( unsigned int d=0 ; d<Dim ; d++ ) vertices[i].template get<1>()(c,d) = frame[c][i][d];
 		}
 		PLY::WritePolygons< Factory , int >( Out.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
 	}
