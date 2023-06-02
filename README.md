@@ -103,7 +103,7 @@ This string value specifies the name of the file containing the points and frame
 The file is assumged to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
 with x-, y-, z-, and (for surfaces in 4D) w-coordinates of a sample's position encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and (for surfaces in 4D) <i>w</i>,
 and the orientation of the sample given by the coefficients of a skew-symmetric matrix,
-encoded by the properties <i>skew_0_0</i>,...,<i>skew_&lt;c&gt;_&lt;r&gt;</i> with <i>c,r=2</i> for curves in 3D and <i>c,r=3</i> for surfaces in 4D.<br>
+encoded by the properties <i>skew_&lt;c&gt;_&lt;r&gt;</i> with <i>0&le;c,r&lt;3</i> for curves in 3D and <i>0&le;c,r&lt;4</i> for surfaces in 4D.<br>
 </dd>
 
 <dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
