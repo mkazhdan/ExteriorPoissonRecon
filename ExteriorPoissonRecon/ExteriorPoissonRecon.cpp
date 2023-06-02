@@ -314,51 +314,21 @@ std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double
 	std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > hermiteData;
 	if( Misha::GetFileExtension( fileName )==std::string( "ply" ) )
 	{
-		using Factory = VertexFactory::Factory< double, VertexFactory::PositionFactory< double, Dim >, VertexFactory::DynamicFactory< double > >;
-
-		VertexFactory::PositionFactory< double , Dim > pFactory;
-		int fileType;
-		std::vector< PlyProperty > plyPropertyList;
-		{
-			std::vector< PlyProperty > inputList = PLY::ReadVertexHeader( fileName , fileType );
-			plyPropertyList.reserve( inputList.size() );
-			for( const auto &entry : inputList )
-			{
-				bool isPosition = false;
-				for( unsigned int i=0 ; i<pFactory.plyReadNum() ; i++ ) isPosition |= ( entry.name==pFactory.plyReadProperty(i).name );
-				if( !isPosition ) plyPropertyList.emplace_back( entry );
-			}
-		}
-
-		VertexFactory::DynamicFactory< double > skewFactory = VertexFactory::DynamicFactory< double >( plyPropertyList );
-		Factory factory = Factory( pFactory , skewFactory );
+		using Factory = VertexFactory::Factory< double, VertexFactory::PositionFactory< double, Dim >, VertexFactory::MatrixFactory< double , Dim , Dim > >;
+		Factory factory = Factory( VertexFactory::PositionFactory< double , Dim >() , VertexFactory::MatrixFactory< double , Dim , Dim >( "skew" ) );
 		std::vector< typename Factory::VertexType > vertices;
 		std::vector< SimplexIndex< Dim-CoDim, unsigned int > > simplexIndices;
+		int fileType;
 		PLY::ReadSimplices( fileName , factory , vertices , simplexIndices , NULL , fileType );
 		hermiteData.resize( vertices.size() );
 		for( int i=0 ; i<vertices.size() ; i++ )
 		{
 			hermiteData[i].first = vertices[i].template get<0>();
-			for ( int j=0 ; j<plyPropertyList.size() ; j++ ) hermiteData[i].second[j] = vertices[i].template get<1>()[j];
+			hermiteData[i].second = Hat::SkewSymmetricMatrix< double , Dim >( vertices[i].template get<1>() );
 		}
 	}
-	else
-	{
-		auto ReadPoint = [&]( std::ifstream &ifile )
-		{
-			Point< double , Dim > p;
-			for( unsigned int d=0 ; d<Dim ; d++ ) ifile >> p[d];
-			return p;
-		};
+	else ERROR_OUT( "Only .ply files supported" );
 
-		std::ifstream ifile( fileName );
-		unsigned int n;
-		ifile >> n;
-		hermiteData.resize( n );
-
-		for( unsigned int i=0 ; i<n ; i++ ) hermiteData[i] = std::make_pair( ReadPoint( ifile ) , Hat::Wedge( ReadPoint( ifile ) , ReadPoint( ifile ) ) );
-		ifile.close();
-	}
 	return hermiteData;
 }
 

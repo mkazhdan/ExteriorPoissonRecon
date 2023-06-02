@@ -140,6 +140,93 @@ namespace VertexFactory
 
 	};
 
+	// The point factory
+	template< typename Real , unsigned int Dim >
+	struct PointFactory : _Factory< Point< Real , Dim > , PointFactory< Real , Dim > >
+	{
+		typedef typename _Factory< Point< Real , Dim > , PointFactory< Real , Dim > >::VertexType VertexType;
+		using _Factory< Point< Real , Dim > , PointFactory< Real , Dim > >::plyValidReadProperties;
+
+		struct Transform
+		{
+			Transform( void ){}
+			template< typename XForm > Transform( XForm xForm ){}
+			VertexType operator()( VertexType dt ) const { return dt; }
+		};
+
+		VertexType operator()( void ) const { return VertexType(); }
+
+		unsigned int  plyReadNum( void ) const { return Dim; }
+		unsigned int plyWriteNum( void ) const { return Dim; }
+		bool plyValidReadProperties( const bool *flags ) const { for( int d=0 ; d<Dim ; d++ ) if( !flags[d] ) return false ; return true ; }
+		PlyProperty  plyReadProperty( unsigned int idx ) const;
+		PlyProperty plyWriteProperty( unsigned int idx ) const;
+		bool   readASCII( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >:: ReadASCII( fp , _typeOnDisk , Dim , &dt[0] ); }
+		bool  readBinary( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >::ReadBinary( fp , _typeOnDisk , Dim , &dt[0] ); }
+		void  writeASCII( FILE *fp , const VertexType &dt ) const { VertexIO< Real >:: WriteASCII( fp , _typeOnDisk , Dim , &dt[0] ); }
+		void writeBinary( FILE *fp , const VertexType &dt ) const { VertexIO< Real >::WriteBinary( fp , _typeOnDisk , Dim , &dt[0] ); }
+
+		bool isStaticallyAllocated( void ) const{ return true; }
+		PlyProperty  plyStaticReadProperty( unsigned int idx ) const;
+		PlyProperty plyStaticWriteProperty( unsigned int idx ) const;
+
+		PointFactory( std::string header , TypeOnDisk typeOnDisk=GetTypeOnDisk< Real >() ) : _header(header) , _typeOnDisk( typeOnDisk ) {}
+
+		size_t bufferSize( void ) const { return sizeof( VertexType ); }
+		void toBuffer( const VertexType &dt , char *buffer ) const { *( (VertexType*)buffer ) = dt; }
+		void fromBuffer( const char *buffer , VertexType &dt ) const { dt = *( (VertexType*)buffer ); }
+
+		bool operator == ( const PointFactory &factory ) const { return _typeOnDisk==factory._typeOnDisk && _header==factory._header; }
+	protected:
+		std::string _name( unsigned int idx ) const;
+		std::string _header;
+		TypeOnDisk _typeOnDisk;
+	};
+
+	// The matrix factory
+	// [WARNING] The representation is column/row, not the other way around, making the row the major index.
+	template< typename Real , unsigned int Cols , unsigned int Rows >
+	struct MatrixFactory : _Factory< Matrix< Real , Cols , Rows > , MatrixFactory< Real , Cols , Rows > >
+	{
+		typedef typename _Factory< Matrix< Real , Cols , Rows > , MatrixFactory< Real , Cols , Rows > >::VertexType VertexType;
+		using _Factory< Matrix< Real , Cols , Rows > , MatrixFactory< Real , Cols , Rows > >::plyValidReadProperties;
+
+		struct Transform
+		{
+			Transform( void ){}
+			template< typename XForm > Transform( XForm xForm ){}
+			VertexType operator()( VertexType dt ) const { return dt; }
+		};
+
+		VertexType operator()( void ) const { return VertexType(); }
+
+		unsigned int  plyReadNum( void ) const { return Cols*Rows; }
+		unsigned int plyWriteNum( void ) const { return Cols*Rows; }
+		bool plyValidReadProperties( const bool *flags ) const { for( int d=0 ; d<Cols*Rows ; d++ ) if( !flags[d] ) return false ; return true ; }
+		PlyProperty  plyReadProperty( unsigned int idx ) const;
+		PlyProperty plyWriteProperty( unsigned int idx ) const;
+		bool   readASCII( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >:: ReadASCII( fp , _typeOnDisk , Cols*Rows , &dt(0,0) ); }
+		bool  readBinary( FILE *fp ,       VertexType &dt ) const { return VertexIO< Real >::ReadBinary( fp , _typeOnDisk , Cols*Rows , &dt(0,0) ); }
+		void  writeASCII( FILE *fp , const VertexType &dt ) const { VertexIO< Real >:: WriteASCII( fp , _typeOnDisk , Cols*Rows , &dt(0,0) ); }
+		void writeBinary( FILE *fp , const VertexType &dt ) const { VertexIO< Real >::WriteBinary( fp , _typeOnDisk , Cols*Rows , &dt(0,0) ); }
+
+		bool isStaticallyAllocated( void ) const{ return true; }
+		PlyProperty  plyStaticReadProperty( unsigned int idx ) const;
+		PlyProperty plyStaticWriteProperty( unsigned int idx ) const;
+
+		MatrixFactory( std::string header , TypeOnDisk typeOnDisk=GetTypeOnDisk< Real >() ) : _header(header) , _typeOnDisk( typeOnDisk ) {}
+
+		size_t bufferSize( void ) const { return sizeof( VertexType ); }
+		void toBuffer( const VertexType &dt , char *buffer ) const { *( (VertexType*)buffer ) = dt; }
+		void fromBuffer( const char *buffer , VertexType &dt ) const { dt = *( (VertexType*)buffer ); }
+
+		bool operator == ( const MatrixFactory &factory ) const { return _typeOnDisk==factory._typeOnDisk && _header==factory._header; }
+	protected:
+		std::string _name( unsigned int idx ) const;
+		std::string _header;
+		TypeOnDisk _typeOnDisk;
+	};
+
 	// The position factory
 	template< typename Real , unsigned int Dim >
 	struct PositionFactory : _Factory< Point< Real , Dim > , PositionFactory< Real , Dim > >
@@ -185,7 +272,7 @@ namespace VertexFactory
 		static const std::string _PlyNames[];
 	};
 
-	// The vertex factory
+	// The normal factory
 	template< typename Real , unsigned int Dim >
 	struct NormalFactory : public _Factory< Point< Real , Dim > , NormalFactory< Real , Dim > >
 	{

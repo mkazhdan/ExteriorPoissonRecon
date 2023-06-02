@@ -184,6 +184,73 @@ namespace VertexFactory
 		return true;
 	}
 
+	//////////////////
+	// PointFactory //
+	//////////////////
+	template< typename Real , unsigned int Dim >
+	std::string PointFactory< Real , Dim >::_name( unsigned int idx ) const { return _header + std::string( "_" ) + std::to_string(idx); }
+
+	template< typename Real , unsigned int Dim >
+	PlyProperty PointFactory< Real , Dim >::plyReadProperty( unsigned int idx ) const
+	{
+		if( idx>=plyReadNum() ) ERROR_OUT( "read property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , sizeof(Real)*idx );
+	}
+	template< typename Real , unsigned int Dim >
+	PlyProperty PointFactory< Real , Dim >::plyWriteProperty( unsigned int idx ) const
+	{
+		if( idx>=plyWriteNum() ) ERROR_OUT( "write property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , sizeof(Real)*idx );
+	}
+
+	template< typename Real , unsigned int Dim >
+	PlyProperty PointFactory< Real , Dim >::plyStaticReadProperty( unsigned int idx ) const
+	{
+		if( idx>=plyReadNum() ) ERROR_OUT( "read property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
+	}
+	template< typename Real , unsigned int Dim >
+	PlyProperty PointFactory< Real , Dim >::plyStaticWriteProperty( unsigned int idx ) const
+	{
+		if( idx>=plyWriteNum() ) ERROR_OUT( "write property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
+	}
+
+	///////////////////
+	// MatrixFactory //
+	///////////////////
+	template< typename Real , unsigned int Cols , unsigned int Rows >
+	std::string MatrixFactory< Real , Cols , Rows >::_name( unsigned int idx ) const
+	{
+		unsigned int c = idx / Rows;
+		unsigned int r = idx % Rows;
+		return _header + std::string( "_" ) + std::to_string(c) + std::string( "_" ) + std::to_string(r);
+	}
+	template< typename Real , unsigned int Cols , unsigned int Rows >
+	PlyProperty MatrixFactory< Real , Cols , Rows >::plyReadProperty( unsigned int idx ) const
+	{
+		if( idx>=plyReadNum() ) ERROR_OUT( "read property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , sizeof(Real)*idx );
+	}
+	template< typename Real , unsigned int Cols , unsigned int Rows >
+	PlyProperty MatrixFactory< Real , Cols , Rows >::plyWriteProperty( unsigned int idx ) const
+	{
+		if( idx>=plyWriteNum() ) ERROR_OUT( "write property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , sizeof(Real)*idx );
+	}
+
+	template< typename Real , unsigned int Cols , unsigned int Rows >
+	PlyProperty MatrixFactory< Real , Cols , Rows >::plyStaticReadProperty( unsigned int idx ) const
+	{
+		if( idx>=plyReadNum() ) ERROR_OUT( "read property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
+	}
+	template< typename Real , unsigned int Cols , unsigned int Rows >
+	PlyProperty MatrixFactory< Real , Cols , Rows >::plyStaticWriteProperty( unsigned int idx ) const
+	{
+		if( idx>=plyWriteNum() ) ERROR_OUT( "write property out of bounds" );
+		return PlyProperty( _name(idx) , ToPlyType( _typeOnDisk ) , PLY::Type< Real >() , (int)offsetof( VertexType , coords ) + sizeof(Real)*idx );
+	}
 
 	/////////////////////
 	// PositionFactory //

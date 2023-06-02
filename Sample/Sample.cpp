@@ -173,7 +173,6 @@ void AddNoise( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetri
 template< unsigned int Dim >
 void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > hermiteData )
 {
-
 	// Add noise (after remapping to the unit cube)
 	{
 		SquareMatrix< double , Dim+1 > worldToUnitCube = ToUnitCube< Dim >( [&]( unsigned int idx ){ return hermiteData[idx].first; } , hermiteData.size() );
@@ -185,18 +184,10 @@ void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetric
 	}
 
 	// generate skew symmetric matrix header
-	std::vector< std::pair< std::string, VertexFactory::TypeOnDisk > > plyPropertyList( Hat::SkewSymmetricMatrix< double , Dim >::Dim );
-	for ( unsigned int i=0 ; i < plyPropertyList.size() ; i++ ) plyPropertyList[i] = std::make_pair( "skew" + std::to_string(i) , VertexFactory::TypeOnDisk::DOUBLE );
-	VertexFactory::DynamicFactory< double > skewFactory = VertexFactory::DynamicFactory< double >( plyPropertyList );
-	using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double, Dim > , VertexFactory::DynamicFactory< double > >;
-	Factory factory = Factory( VertexFactory::PositionFactory< double, Dim >(), skewFactory );
+	using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double, Dim > , VertexFactory::MatrixFactory< double , Dim , Dim > >;
+	Factory factory = Factory( VertexFactory::PositionFactory< double, Dim >(), VertexFactory::MatrixFactory< double , Dim , Dim >( "skew" ) );
 	std::vector< typename Factory::VertexType > vertices( hermiteData.size() );
-	for( unsigned int i=0 ; i<vertices.size() ; i++ )
-	{
-		vertices[i].template get<0>() = hermiteData[i].first;
-		vertices[i].template get<1>() = skewFactory();
-		for ( unsigned int j=0 ; j<Hat::SkewSymmetricMatrix< double , Dim >::Dim ; j++ ) vertices[i].template get<1>()[j] = hermiteData[i].second[j];
-	}
+	for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].template get<0>() = hermiteData[i].first , vertices[i].template get<1>() = hermiteData[i].second();
 	if( Out.set ) PLY::WritePoints< Factory >( Out.value , factory , vertices , PLY_BINARY_NATIVE );
 }
 

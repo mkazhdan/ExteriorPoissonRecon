@@ -258,7 +258,7 @@ protected:
 };
 template< typename Real > Point< Real , (unsigned int)-1 > operator * ( Real s , Point< Real , (unsigned int)-1 > p ){ return p*s; }
 
-template<class Real,int Cols,int Rows>
+template< class Real , int Cols , int Rows >
 class Matrix : public InnerProductSpace<Real,Matrix<Real,Cols,Rows> >
 {
 public:
