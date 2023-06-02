@@ -13,12 +13,12 @@ COMPILER ?= gcc
 #COMPILER ?= clang
 
 ifeq ($(COMPILER),gcc)
-	CFLAGS += -fopenmp -Wno-deprecated -std=c++17 -Wno-invalid-offsetof
+	CFLAGS += -fopenmp -Wno-deprecated -std=c++17 -Wno-invalid-offsetof -Wno-attribute-warning
 	LFLAGS += -lgomp -lstdc++ -lpthread
 	CC=gcc
 	CXX=g++
 else
-	CFLAGS += -Wno-deprecated -std=c++17 -Wno-invalid-offsetof -Wno-dangling-else -Wno-null-dereference
+	CFLAGS += -Wno-deprecated -std=c++17 -Wno-invalid-offsetof -Wno-dangling-else -Wno-null-dereference -Wno-attribute-warning
 	LFLAGS += -lstdc++
 	CC=clang
 	CXX=clang++

@@ -135,6 +135,7 @@ namespace MarchingSimplices
 		if     ( v==0 ) return std::make_pair( MultiIndex< 1 , Index >( &si[1] ) , true  );
 		else if( v==1 ) return std::make_pair( MultiIndex< 1 , Index >( &si[0] ) , false );
 		else ERROR_OUT( "Bad index: " , v );
+		return std::pair< MultiIndex< 1 , Index > , bool >();
 	}
 
 	template< unsigned int K , typename Index >

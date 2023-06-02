@@ -59,7 +59,8 @@ Reasonable values for amplitude are in the range [0.1,0.5].
 <dd>
 This optional string value specifies the name of the file to which the samples will be written.<br>
 The file will be written out in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
-with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i> and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
+with x-, y-, z-, and (for surfaces in 4D) w-coordinates of a sample's position encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and (for surfaces in 4D) <i>w</i>,
+and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
 encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.<br>
 If this argument is not provided, no output is generated.
 </dd>
@@ -99,10 +100,10 @@ Reconstructs an implicit function, sampled over a regular grid with two values p
 <dt><b>--in</b> &lt;<i>input points and frames</i>&gt;</dt>
 <dd>
 This string value specifies the name of the file containing the points and frames.<br>
-The file is assumed to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
-with x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i> and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
+The file is assumged to be in <a href="https://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format,
+with x-, y-, z-, and (for surfaces in 4D) w-coordinates of a sample's position encoded by the properties <i>x</i>, <i>y</i>, <i>z</i>, and (for surfaces in 4D) <i>w</i>,
+and the orientation of the sample given by the (linearized) coefficients of a skew-symmetric matrix,
 encoded by the properties <i>skew0</i>,...,<i>skew&lt;n&gt;</i> with <i>n=2</i> for curves in 3D and <i>n=5</i> for surfaces in 4D.<br>
-If this argument is not provided, no output is generated.
 </dd>
 
 <dt>[<b>--out</b> &lt;<i>grid header</i>&gt;]</dt>
@@ -115,7 +116,7 @@ If this argument is not provided, no output is generated.
 <dt>[<b>--depth</b> &lt;<i>reconstruction depth</i>&gt;]</dt>
 <dd>
 This optional integer value is the depth of the grid that will be used for reconstruction.
-Running at depth <i>d</i> corresponds to solving on a grid whose resolution is than <i>2^D x 2^d x ... </i>.<br>
+Running at depth <i>d</i> corresponds to solving on a grid whose resolution is than <i>2^d x 2^d x ... </i>.<br>
 The default value for this parameter is 5.
 </dd>
 
@@ -183,8 +184,8 @@ If this argument is not provided, no density-based trimming is performed.
 
 <dt>[<b>--trimDensity</b> &lt;<i>trimming density</i>&gt;]</dt>
 <dd>
-This optional non-negative floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
-The argument is iengored if the <b>--density</b> argument is not provided.<br>
+This optional floating point value specifies the density that must be met by some point on a connected component of the reconstruction for the connected component to be kept.<br>
+The argument is ignored if the <b>--density</b> argument is not provided.<br>
 The default value for this argument is 0.0.
 </dd>
 
@@ -256,7 +257,7 @@ If this argument is not provided, no output is generated.
 
 <dt>[<b>--radius</b> &lt;<i>tubular radius</i>&gt;]</dt>
 <dd>
-This optional non-negative floating point value specifies the radius of the tube (in units of curve diameter).<br>
+This optional floating point value specifies the radius of the tube (in units of curve diameter).<br>
 The default value for this argument is 1/64.
 </dd>
 
@@ -282,7 +283,7 @@ To reconstruct a dilated (4,5) torus-knot one proceeds in four steps:
 <blockquote><code>% Sample --type torus_knot:4:5 --out tk.4.5.samples.ply</code></blockquote>
 <li> Reconstruct the implicit function:
 <blockquote><code>% ExteriorPoissonRecon --in tk.4.5.samples.ply --out tk.4.5</code></blockquote>
-<LI> Extract the curves near regions of high sampling density:
+<LI> Extract the connected components of the curve near regions of high sampling density:
 <blockquote><code>% Extract --in tk.4.5.grid --density tk.4.5.density.grid --out tk.4.5.curve.ply --trimDensity 2</code></blockquote>
 <LI> Dilate the curve:
 <blockquote><code>% Dilate --in tk.4.5.curve.ply --out tk.4.5.curve.dilated.ply</code></blockquote>

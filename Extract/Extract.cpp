@@ -38,7 +38,6 @@ DAMAGE.
 #include "Misha/RegularGrid.h"
 #include "Include/Hat.h"
 
-#define OUTPUT_GRADIENTS
 static const unsigned int CoDim = 2;
 
 Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" ) , LevelSets( "levelSets" ) , Density( "density" );
@@ -67,10 +66,25 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
-#ifdef OUTPUT_GRADIENTS
-const std::string GradientNames1[] = { "nx1" , "ny1" , "nz1" , "nw1" };
-const std::string GradientNames2[] = { "nx2" , "ny2" , "nz2" , "nw2" };
-#endif // OUTPUT_GRADIENTS
+template< unsigned int Dim , unsigned int CoDim >
+std::vector< std::string > GradientNames( void )
+{
+	const std::string _names[]  = { "nx" , "ny" , "nz" , "nw" };
+	std::vector< std::string > names( Dim * CoDim );
+	for( unsigned int c=0 ; c<CoDim ; c++ ) for( unsigned int d=0 ; d<Dim ; d++ ) names[d+c*Dim] = _names[d] + std::to_string( c+1 );
+	return names;
+}
+
+Point< double , 3 > SurfaceColor( unsigned int idx )
+{
+	switch( idx )
+	{
+		case 0: return Point< double , 3 >( 223. , 41. , 53. );
+		case 1: return Point< double , 3 >( 55. , 114. , 255. );
+		default: ERROR_OUT( "Only two surfaces supported" );
+	}
+	return Point< double , 3 >();
+}
 
 template< typename Data , unsigned int Dim >
 unsigned int GridDepth( const RegularGrid< Data , Dim > &grid )
@@ -87,7 +101,7 @@ unsigned int GridDepth( const RegularGrid< Data , Dim > &grid )
 	return depth;
 }
 
-template< unsigned int Dim >
+template< unsigned int Dim , unsigned int CoDim >
 void Execute( void )
 {
 	Miscellany::Timer timer;
@@ -128,7 +142,7 @@ void Execute( void )
 	{
 		Miscellany::Timer timer;
 		MarchingSimplices::Orient( levelSet.simplexIndices );
-		std::cout << "Oriented: " << timer.elapsed() << " (s)" << std::endl;
+		if( Verbose.set ) std::cout << "Oriented: " << timer.elapsed() << " (s)" << std::endl;
 	}
 
 	if( Density.set && TrimDensity.value>0 )
@@ -151,122 +165,92 @@ void Execute( void )
 		levelSet.simplexIndices = temp;
 	}
 
-#ifdef OUTPUT_GRADIENTS
-	std::vector< Point< double , Dim > > frame[2];
+	std::vector< Point< double , Dim > > frame[CoDim];
 	{
 		Hat::ScalarFunctions< Dim > scalars( 1<<depth );
 
-		frame[0].resize( levelSet.vertices.size() );
-		frame[1].resize( levelSet.vertices.size() );
-
-		Eigen::VectorXd x( grid.resolution() ) , y( grid.resolution() );
-		for( unsigned int i=0 ; i<grid.resolution() ; i++ )
-		{
-			Point< double , CoDim > v = grid[i];
-			x[i] = v[0] , y[i] = v[1];
-		}
 		double r = (double)(1<<depth);
-		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
+		for( unsigned int c=0 ; c<CoDim ; c++ )
 		{
-			frame[0][i] = scalars.gradient( x , levelSet.vertices[i] / r ) / r / scale;
-			frame[1][i] = scalars.gradient( y , levelSet.vertices[i] / r ) / r / scale;
+			frame[c].resize( levelSet.vertices.size() );
+			Eigen::VectorXd x( grid.resolution() );
+			for( unsigned int i=0 ; i<grid.resolution() ; i++ ) x[i] = grid[i][c];
+			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) frame[c][i] = scalars.gradient( x , levelSet.vertices[i] / r ) / r / scale;
 		}
 	}
-#endif // OUTPUT_GRADIENTS
 
 	for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );
 
 	if( Out.set )
 	{
-#ifdef OUTPUT_GRADIENTS
-		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim > >;
+		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::StaticFactory< double , Dim*CoDim > >;
 		using Vertex = typename Factory::VertexType;
 		VertexFactory::PositionFactory< double , Dim > pFactory;
-		VertexFactory::StaticFactory< double , Dim > gFactory1( GradientNames1 );
-		VertexFactory::StaticFactory< double , Dim > gFactory2( GradientNames2 );
-		Factory factory( pFactory , gFactory1 , gFactory2 );
-#else // !OUTPUT_GRADIENTS
-		using Factory = VertexFactory::PositionFactory< double , Dim >;
-		Factory factory;
-#endif // OUTPUT_GRADIENTS
+		std::vector< std::string > names = GradientNames< Dim , CoDim >();
+		VertexFactory::StaticFactory< double , Dim*CoDim > gFactory( &names[0] );
+		Factory factory( pFactory , gFactory );
 		std::vector< std::vector< int > > simplices( levelSet.simplexIndices.size() );
 		for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
 		{
 			simplices[i].resize( Dim-CoDim+1 );
 			for( unsigned int j=0 ; j<Dim-CoDim+1 ; j++ ) simplices[i][j] = (int)levelSet.simplexIndices[i][j];
 		}
-#ifdef OUTPUT_GRADIENTS
 		std::vector< Vertex > vertices( levelSet.vertices.size() );
 		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
 		{
 			vertices[i].template get<0>() = levelSet.vertices[i];
-			vertices[i].template get<1>() = frame[0][i];
-			vertices[i].template get<2>() = frame[1][i];
+			for( unsigned int c=0 ; c<CoDim ; c++ ) for( unsigned int d=0 ; d<Dim ; d++ ) vertices[i].template get<1>()[d+c*Dim] = frame[c][i][d];
 		}
 		PLY::WritePolygons< Factory , int >( Out.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
-#else // !OUTPUT_GRADIENTS
-		PLY::WritePolygons< Factory , int >( Out.value , factory , levelSet.vertices , simplices , PLY_BINARY_NATIVE );
-#endif // OUTPUT_GRADIENTS
 	}
 
 	// Output the level sets
 	if( LevelSets.set )
 	{
 		timer.reset();
-		std::vector< double > xValues( sMesh.vertices.size() ) , yValues( sMesh.vertices.size() );
-		for( unsigned int i=0 ; i<sMesh.vertices.size() ; i++ )
-		{
-			Point< double , CoDim > v = grid( sMesh.vertices[i] );
-			xValues[i] = v[0];
-			yValues[i] = v[1];
-		}
-		if( Verbose.set ) std::cout << "Sampled implicit function: " << timer.elapsed() << " (s)" << std::endl;
-
-		timer.reset();
-		MarchingSimplices::SimplicialMesh< Dim-1 , unsigned int , Point< double , Dim > > xLevelSet , yLevelSet;
-		xLevelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return xValues[idx]; } , Point< double , 1 >() );
-		yLevelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return yValues[idx]; } , Point< double , 1 >() );
-		if( Verbose.set ) std::cout << "Level set extracted: " << timer.elapsed() << " (s)" << std::endl;
-
-		for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ ) xLevelSet.vertices[i] = voxelToWorld( xLevelSet.vertices[i] );
-		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ ) yLevelSet.vertices[i] = voxelToWorld( yLevelSet.vertices[i] );
 
 		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::RGBColorFactory< double > >;
 		using Vertex = typename Factory::VertexType;
 
 		std::vector< Vertex > vertices;
 		std::vector< std::vector< int > > simplices;
-		vertices.reserve( xLevelSet.vertices.size() + yLevelSet.vertices.size() );
-		simplices.reserve( xLevelSet.simplexIndices.size() + yLevelSet.simplexIndices.size() );
 
-		Vertex v;
+		for( unsigned int c=0 ; c<CoDim ; c++ )
+		{
+			timer.reset();
+			std::vector< double > values( sMesh.vertices.size() );
+			for( unsigned int i=0 ; i<sMesh.vertices.size() ; i++ )
+			{
+				Point< double , CoDim > v = grid( sMesh.vertices[i] );
+				values[i] = v[c];
+			}
+			if( Verbose.set ) std::cout << "Sampled implicit function: " << timer.elapsed() << " (s)" << std::endl;
 
-		v.template get<1>() = Point< double , 3 >( 223. , 41. , 53. );
-		for( unsigned int i=0 ; i<xLevelSet.vertices.size() ; i++ )
-		{
-			v.template get<0>() = xLevelSet.vertices[i];
-			vertices.push_back( v );
-		}
-		v.template get<1>() = Point< double , 3 >( 55. , 114. , 255. );
-		for( unsigned int i=0 ; i<yLevelSet.vertices.size() ; i++ )
-		{
-			v.template get<0>() = yLevelSet.vertices[i];
-			vertices.push_back( v );
-		}
+			timer.reset();
+			MarchingSimplices::SimplicialMesh< Dim-1 , unsigned int , Point< double , Dim > > levelSet;
+			levelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return values[idx]; } , Point< double , 1 >() );
+			if( Verbose.set ) std::cout << "Level set extracted: " << timer.elapsed() << " (s)" << std::endl;
 
-		for( unsigned int i=0 ; i<xLevelSet.simplexIndices.size() ; i++ )
-		{
-			SimplexIndex< Dim-1 , unsigned int > si = xLevelSet.simplexIndices[i];
-			std::vector< int > _si(Dim);
-			for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)si[j];
-			simplices.push_back( _si );
-		}
-		for( unsigned int i=0 ; i<yLevelSet.simplexIndices.size() ; i++ )
-		{
-			SimplexIndex< Dim-1 , unsigned int > si = yLevelSet.simplexIndices[i];
-			std::vector< int > _si(Dim);
-			for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] += (int)( si[j] + (unsigned int)xLevelSet.vertices.size() );
-			simplices.push_back( _si );
+			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );
+
+			size_t vSize = vertices.size();
+			vertices.reserve( vertices.size() + levelSet.vertices.size() );
+			simplices.reserve( simplices.size() + levelSet.simplexIndices.size() );
+
+			Vertex v;
+			v.template get<1>() = SurfaceColor( c );
+			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
+			{
+				v.template get<0>() = levelSet.vertices[i];
+				vertices.push_back( v );
+			}
+			for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
+			{
+				SimplexIndex< Dim-1 , unsigned int > si = levelSet.simplexIndices[i];
+				std::vector< int > _si(Dim);
+				for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] = (int)( si[j]  + (unsigned int)vSize );
+				simplices.push_back( _si );
+			}
 		}
 
 		Factory factory;
@@ -288,8 +272,8 @@ int main( int argc , char* argv[] )
 	if( !RegularGrid< double , 1 >::ReadDimension( In.value , dim ) ) ERROR_OUT( "Failed to read dimension: " , In.value );
 	switch( dim )
 	{
-		case 4: Execute< 4 >() ; break;
-		case 3: Execute< 3 >() ; break;
+		case 4: Execute< 4 , CoDim >() ; break;
+		case 3: Execute< 3 , CoDim >() ; break;
 		default: ERROR_OUT( "Only dimensions 3 and 4 supported" );
 	}
 
