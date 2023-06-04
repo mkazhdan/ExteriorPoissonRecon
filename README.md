@@ -80,6 +80,11 @@ The default value for this parameter is 0.
 The default value for this parameter is 0.
 </dd>
 
+<dt>[<b>--sNoise</b> &lt;<i>spot noise</i>&gt;]</dt>
+<dd> This optional floating point value specifies the fraction of the number of input samples that should be added as spot noise.<BR>
+The default value for this parameter is 0.
+</dd>
+
 <dt>[<b>--regular</b>]</dt>
 <dd>If enabled, samples will be obtained by regularly sampling in parameter space.</dd>
 

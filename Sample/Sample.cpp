@@ -44,7 +44,7 @@ DAMAGE.
 Misha::CmdLineParameter< std::string > Out( "out" );
 Misha::CmdLineParameter< std::string > SampleType( "type" );
 Misha::CmdLineParameter< unsigned int > SampleResolution( "res" , 1024 );
-Misha::CmdLineParameter< double > AngularNoise( "aNoise" , 0. ) , PositionalNoise( "pNoise" , 0. );
+Misha::CmdLineParameter< double > AngularNoise( "aNoise" , 0. ) , PositionalNoise( "pNoise" , 0. ) , SpotNoise( "sNoise" , 0. );
 Misha::CmdLineReadable RegularSample( "regular" );
 
 Misha::CmdLineReadable* params[] =
@@ -55,6 +55,7 @@ Misha::CmdLineReadable* params[] =
 	&RegularSample ,
 	&AngularNoise ,
 	&PositionalNoise ,
+	&SpotNoise ,
 	NULL
 };
 
@@ -67,6 +68,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <sample resolution>=%d]\n" , SampleResolution.name.c_str() , SampleResolution.value );
 	printf( "\t[--%s <angular noise sigma (in units of degrees)>=%f]\n" , AngularNoise.name.c_str() , AngularNoise.value );
 	printf( "\t[--%s <positional noise sigma (in normalized units)>=%f]\n" , PositionalNoise.name.c_str() , PositionalNoise.value );
+	printf( "\t[--%s <spot noise (fraction of input samples)>=%f]\n" , SpotNoise.name.c_str() , SpotNoise.value );
 	printf( "\t[--%s <output file>]\n" , Out.name.c_str() );
 	printf( "\t[--%s]\n" , RegularSample.name.c_str() );
 }
@@ -136,7 +138,7 @@ SquareMatrix< double , Dim+1 > ToUnitCube( SampleFunctor F , size_t sampleNum )
 template< unsigned int Dim >
 void AddNoise( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > >& hermiteData )
 {
-	// Add noise
+	// Add positional noise
 	if( PositionalNoise.value>0 )
 	{
 		std::default_random_engine generator;
@@ -157,6 +159,8 @@ void AddNoise( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetri
 			hermiteData[i].first += delta;
 		}
 	}
+
+	// Add angular noise
 	if( AngularNoise.value>0 )
 	{
 		std::default_random_engine generator;
@@ -168,6 +172,31 @@ void AddNoise( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetri
 			hermiteData[i].second = R.transpose() * hermiteData[i].second() * R;
 		}
 	}
+
+	// Add spot noise
+	if( SpotNoise.value )
+	{
+		std::default_random_engine generator;
+		std::uniform_real_distribution< double > pDistribution( 0. , 1. );
+		std::uniform_real_distribution< double > sDistribution( -1. , 1. );
+
+		unsigned int samples = (unsigned int)ceil( hermiteData.size() * SpotNoise.value );
+		hermiteData.reserve( hermiteData.size() + samples );
+		std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > sample;
+		for( unsigned int i=0 ; i<samples ; i++ )
+		{
+			for( unsigned int d=0 ; d<Dim ; d++ ) sample.first[d] = pDistribution( generator );
+			SquareMatrix< double , Dim > skew;
+			for( unsigned int j=0 ; j<Dim ; j++ ) for( unsigned int k=0 ; k<j ; k++ )
+			{
+				skew(j,k) = sDistribution( generator );
+				skew(k,j) = -skew(j,k);
+			}
+			sample.second = Hat::SkewSymmetricMatrix< double , Dim >( skew );
+			hermiteData.push_back( sample );
+		}
+	}
+
 }
 
 template< unsigned int Dim >
