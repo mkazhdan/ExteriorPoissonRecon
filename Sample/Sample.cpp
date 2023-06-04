@@ -65,8 +65,8 @@ void ShowUsage( const char* ex )
 	for( unsigned int i=0 ; i<Samples::  Curve::TypeCount ; i++ ) printf( "\t\t%s\n" , Samples::  Curve::Descriptions[i].c_str() );
 	for( unsigned int i=0 ; i<Samples::Surface::TypeCount ; i++ ) printf( "\t\t%s\n" , Samples::Surface::Descriptions[i].c_str() );
 	printf( "\t[--%s <sample resolution>=%d]\n" , SampleResolution.name.c_str() , SampleResolution.value );
-	printf( "\t[--%s <max angular noise>=%f]\n" , AngularNoise.name.c_str() , AngularNoise.value );
-	printf( "\t[--%s <positional noise sigma (in voxels)>=%f]\n" , PositionalNoise.name.c_str() , PositionalNoise.value );
+	printf( "\t[--%s <angular noise sigma (in units of degrees)>=%f]\n" , AngularNoise.name.c_str() , AngularNoise.value );
+	printf( "\t[--%s <positional noise sigma (in units of voxels)>=%f]\n" , PositionalNoise.name.c_str() , PositionalNoise.value );
 	printf( "\t[--%s <output file>]\n" , Out.name.c_str() );
 	printf( "\t[--%s]\n" , RegularSample.name.c_str() );
 }
