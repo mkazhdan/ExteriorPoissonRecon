@@ -66,7 +66,7 @@ void ShowUsage( const char* ex )
 	for( unsigned int i=0 ; i<Samples::Surface::TypeCount ; i++ ) printf( "\t\t%s\n" , Samples::Surface::Descriptions[i].c_str() );
 	printf( "\t[--%s <sample resolution>=%d]\n" , SampleResolution.name.c_str() , SampleResolution.value );
 	printf( "\t[--%s <angular noise sigma (in units of degrees)>=%f]\n" , AngularNoise.name.c_str() , AngularNoise.value );
-	printf( "\t[--%s <positional noise sigma (in units of voxels)>=%f]\n" , PositionalNoise.name.c_str() , PositionalNoise.value );
+	printf( "\t[--%s <positional noise sigma (in normalized units)>=%f]\n" , PositionalNoise.name.c_str() , PositionalNoise.value );
 	printf( "\t[--%s <output file>]\n" , Out.name.c_str() );
 	printf( "\t[--%s]\n" , RegularSample.name.c_str() );
 }
@@ -150,7 +150,7 @@ void AddNoise( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetri
 				for( unsigned int d=0 ; d<Dim && inBounds ; d++ )
 				{
 					delta[d] = distribution( generator );
-					inBounds &=  hermiteData[i].first[d] + delta[d]>0 && hermiteData[i].first[d] + delta[d]<1;
+					inBounds &= hermiteData[i].first[d] + delta[d]>0 && hermiteData[i].first[d] + delta[d]<1;
 				}
 				if( inBounds ) break;
 			}

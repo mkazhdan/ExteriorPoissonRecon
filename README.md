@@ -71,12 +71,12 @@ The default value for this parameter is 1024.
 </dd>
 
 <dt>[<b>--aNoise</b> &lt;<i>angular noise</i>&gt;]</dt>
-<dd> This optional floating point value specifies the deviation of noise in the samples' orientations (in units of degress).<BR>
+<dd> This optional floating point value specifies the deviation of noise in the samples' orientations (in units of degrees).<BR>
 The default value for this parameter is 0.
 </dd>
 
 <dt>[<b>--pNoise</b> &lt;<i>positional noise</i>&gt;]</dt>
-<dd> This optional floating point value specifies the deviation of noise in the samples' positions (in units of voxels).<BR>
+<dd> This optional floating point value specifies the deviation of noise in the samples' positions (in normalized units).<BR>
 The default value for this parameter is 0.
 </dd>
 
