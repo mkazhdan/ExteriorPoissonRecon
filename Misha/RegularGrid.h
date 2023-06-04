@@ -71,7 +71,7 @@ struct RegularGrid
 	RegularGrid( const RegularGrid &grid ) : RegularGrid()
 	{
 		resize( grid._res );
-		memcpy( (void*)_values , grid._values , sizeof(DataType)*grid.resolution() );
+		memcpy( (void*)_values , (void*)grid._values , sizeof(DataType)*grid.resolution() );
 	}
 	RegularGrid &operator = ( RegularGrid &&grid ){ _Swap( *this , grid ) ; return *this; }
 	RegularGrid &operator = ( const RegularGrid &grid )

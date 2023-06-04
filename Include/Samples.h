@@ -478,6 +478,7 @@ namespace Samples
 		struct Sampler
 		{
 			virtual std::pair< Point< double , 4 > , Hat::SkewSymmetricMatrix< double , 4 > > operator()( double s , double t ) const = 0;
+			virtual ~Sampler( void ){}
 		};
 
 		struct CliffordTorusSampler : public Sampler
