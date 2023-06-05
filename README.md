@@ -14,7 +14,7 @@ This software supports reconstruction of co-dimension two manifolds.
 <a name="LINKS"><b>LINKS</b></a><br>
 <ul>
 <b>Papers:</b>
-<a href="https://www.cs.jhu.edu/~misha/MyPapers/SGP23.pdf">[Kohlbrenner, Lee, Alexa, and Kazhdan, 2023]</a>,
+<a href="https://www.cs.jhu.edu/~misha/MyPapers/SGP23.pdf">[Kohlbrenner, Lee, Kazhdan, and Alexa, 2023]</a>,
 <br>
 <b>Executables: </b>
 <a href="https://www.cs.jhu.edu/~misha/Code/ExteriorPoissonRecon/Version1.00/ExteriorPoissonRecon.x64.zip">Win64</a><br>
