@@ -206,7 +206,7 @@ namespace ExteriorPoisson
 					std::pair< Point< double , Dim > , SkewSymmetricMatrix< double , Dim > > sample = _F(s);
 					double d = estimator.depth( sample.first );
 					if( d>=_depth ) splatters[t][_depth]( __Vs[t][_depth]() , sample );
-					else if( d<=0 ) splatters[t][_depth]( __Vs[t][0]() , sample );
+					else if( d<=0 ) splatters[t][0]( __Vs[t][0]() , sample );
 					else
 					{
 						unsigned int d1 = (unsigned int)floor(d) , d2 = (unsigned int)floor(d)+1;
