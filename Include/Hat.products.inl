@@ -64,12 +64,12 @@ ProductFunctions< Dim , Sym >::FullIntegrationStencil< T >::FullIntegrationStenc
 		auto f = [&]( Index< Dim > f2 ){ if( f1!=f2 || Sym ) f2s.push_back( f2 ); };
 		Basis< Dim >::ElementSupport( Range< Dim >::Intersect( eRange , Basis< Dim >::FunctionSupport( f1 ) ) ).process(f);
 
-		std::vector< Row > _row( f2s.size() );
+		std::vector< Row > _row;
+		_row.reserve( f2s.size() );
 		for( unsigned int i=0 ; i<f2s.size() ; i++ )
 		{
 			Index< Dim > f2 = f2s[i];
-			_row[i].f2 = f2 - f1;
-			_row[i].df2 = scalars.functionIndex(f2) - scalars.functionIndex(f1);
+			_row.emplace_back( f2-f1 , scalars.functionIndex(f2) - scalars.functionIndex(f1) );
 
 			// The range of elements supported on both functions
 			std::map< ProductIndex , T > row;
@@ -186,79 +186,6 @@ SquareMatrix< double , Dim , Sym > ProductFunctions< Dim , Sym  >::value( const 
 	return v;
 }
 
-
-template< unsigned int Dim , bool Sym >
-template< typename T >
-T ProductFunctions< Dim , Sym >::operator()( const IntegrationStencil< T , 2 , 0 > &stencil , const Eigen::VectorXd &x , const Eigen::VectorXd &y ) const
-{
-	T d{};
-	for( unsigned int e=0 ; e<ScalarFunctions< Dim >::ElementNum( _r ) ; e++ )
-	{
-		Index< Dim > E = ScalarFunctions< Dim >::ElementIndex( e , _r );
-		Range< Dim > eRange = Basis< Dim >::ElementSupport( E );
-
-		auto f = [&]( Index< Dim > f1 , Index< Dim > f2 )
-		{
-			if( f1<f2 || ( Sym && f1==f2 ) )
-			{
-				size_t i = _matrixInfo.entry(f1,f2);
-				auto f = [&]( Index< Dim > g1 , Index< Dim > g2 )
-				{
-					if( g1<g2 || ( Sym && g1==g2 ) )
-					{
-						size_t j = _matrixInfo.entry(g1,g2);
-						d += stencil( E , f1 , f2 , g1 , g2 ) * x[i] * y[j];
-					}
-				};
-				eRange.template process< 2 >( f );
-			}
-		};
-		eRange.template process< 2 >( f );
-	}
-	return d;
-}
-
-template< unsigned int Dim , bool Sym >
-template< typename T >
-T ProductFunctions< Dim , Sym >::operator()( const FullIntegrationStencil< T > &stencil , const Eigen::VectorXd &x , const Eigen::VectorXd &y ) const
-{
-	ScalarFunctions< Dim > scalars( (unsigned int)resolution() );
-	std::vector< double > integrals( ThreadPool::NumThreads() , 0 );
-
-	ThreadPool::ParallelFor
-		(
-			0 , scalars.functionNum() , 
-			[&]( unsigned int t , size_t i )
-			{
-				size_t i1 = (size_t)i;
-				Index< Dim > F1 = scalars.functionIndex( i );
-				const std::vector< typename FullIntegrationStencil< T >::Row > &rows = stencil.rows( F1 );
-				for( unsigned int j=0 ; j<rows.size() ; j++ )
-				{
-					Index< Dim > F2 = F1 + rows[j].f2;	
-					if( F1>F2 ) continue;
-					size_t i2 = i1 + rows[j].df2;
-					T integral{};
-					size_t idxI = _matrixInfo.entry( F1 , F2 );
-					for( unsigned int k=0 ; k<rows[j].entries.size() ; k++ )
-					{
-						size_t j1 = i1 + rows[j].entries[k].dg1 , j2 = i1 + rows[j].entries[k].dg2;
-						Index< Dim > G1 = F1 + rows[j].entries[k].g1 , G2 = F1 + rows[j].entries[k].g2;
-						size_t idxJ = _matrixInfo.entry( G1 , G2 );
-
-						integral += rows[j].entries[k].value * y[idxJ];
-					}
-					integrals[t] += integral * x[idxI];
-				}
-			}
-		);
-
-	T integral{};
-	for( unsigned int i=0 ; i<integrals.size() ; i++ ) integral += integrals[i];
-
-	return integral;
-}
-
 template< unsigned int Dim , bool Sym >
 template< typename T , typename Indexer /* = Hat::BaseIndex< Dim > */ >
 T ProductFunctions< Dim , Sym >::operator()( const Indexer &indexer , const FullIntegrationStencil< T > &stencil , const Eigen::VectorXd &x1 , const Eigen::VectorXd &x2 , const Eigen::VectorXd &y1 , const Eigen::VectorXd &y2 ) const
@@ -280,8 +207,7 @@ T ProductFunctions< Dim , Sym >::operator()( const Indexer &indexer , const Full
 
 			for( unsigned int j=0 ; j<rows.size() ; j++ )
 			{
-				Hat::Index< Dim > I = rows[j].f2 + Off;
-				size_t f2 = neighbors( &I[0] );
+				size_t f2 = neighbors.data[ rows[j]._f2 ];
 				if( f2!=-1 )
 				{
 					if( f1>f2 ) continue;
@@ -290,8 +216,7 @@ T ProductFunctions< Dim , Sym >::operator()( const Indexer &indexer , const Full
 					T value{};
 					for( unsigned int k=0 ; k<rows[j].entries.size() ; k++ )
 					{
-						Hat::Index< Dim > J1 = rows[j].entries[k].g1 + Off , J2 = rows[j].entries[k].g2 +Off;
-						size_t g1 = neighbors( &J1[0] ) , g2 = neighbors( &J2[0] );
+						size_t g1 = neighbors.data[ rows[j].entries[k]._g1 ] , g2 = neighbors.data[ rows[j].entries[k]._g2 ];
 						if( g1!=-1 && g2!=-1 ) value += rows[j].entries[k].value * Coefficient( std::make_pair( y1[g1] , y1[g2] ) , std::make_pair( y2[g1] , y2[g2] ) , g1 , g2 );
 					}
 					integrals[t] += value * xValue;

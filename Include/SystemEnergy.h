@@ -95,7 +95,6 @@ namespace MishaK
 
 		// Returns the square norm of the wedge
 		virtual double wedgeSquareNorm( const Eigen::VectorXd &x , const Eigen::VectorXd &y ) const = 0;
-		virtual double wedgeSquareNorm( const Eigen::VectorXd &w ) const = 0;
 
 		// Returns the prolongation of the scalar function
 		virtual Eigen::VectorXd prolongation( const Eigen::VectorXd &coarse ) const = 0;
@@ -159,8 +158,6 @@ namespace MishaK
 		// Returns the square norm of the wedge
 		double wedgeSquareNorm( const Eigen::VectorXd &x , const Eigen::VectorXd &y ) const { return wedges( indexer , _wMStencil , x , y , x , y ); }
 
-		double wedgeSquareNorm( const Eigen::VectorXd &w ) const { return wedges( _wMStencil , w , w ); }
-
 		// Returns the prolongation of the scalar function
 		Eigen::VectorXd prolongation( const Eigen::VectorXd &coarse ) const { return _sP * coarse; }
 
@@ -204,9 +201,6 @@ namespace MishaK
 
 		// Returns the square norm of the target alternating product
 		double squareNorm( void ) const { return _c[0]; }
-
-		// Returns the square norm of the wedge
-		double wedgeSquareNorm( const Eigen::VectorXd &w ) const { return w.dot( _M[0][0] * w ); }
 
 		// Returns the prolongation of the scalar function
 		Eigen::VectorXd prolongation( const Eigen::VectorXd &coarse ) const { return _sP * coarse; }
@@ -506,18 +500,15 @@ namespace MishaK
 	Polynomial::Polynomial2D< 4 > SingleCycleCascadicSystemEnergy< Dim , Indexer >::biQuadraticFit( const Eigen::VectorXd &x , const Eigen::VectorXd &y , const Eigen::VectorXd &_x , const Eigen::VectorXd &_y ) const
 	{
 		Polynomial::Polynomial2D< 4 > Q2;
-		Eigen::VectorXd xy = wedges.product( x , y ) , _x_y = wedges.product( _x , _y );
-		Eigen::VectorXd _xy = wedges.product( _x , y ) , x_y = wedges.product( x , _y );
-
-		Q2.coefficient(2,2) +=     wedges( _wMStencil , _x_y , _x_y );
-		Q2.coefficient(2,1) += 2 * wedges( _wMStencil , _x_y , _xy );
-		Q2.coefficient(1,2) += 2 * wedges( _wMStencil , _x_y , xy );
-		Q2.coefficient(2,0) +=     wedges( _wMStencil , _xy , _xy );
-		Q2.coefficient(0,2) +=     wedges( _wMStencil , x_y , x_y );
-		Q2.coefficient(1,1) += 2 * wedges( _wMStencil , _xy , x_y ) + 2 * wedges( _wMStencil , _x_y , xy );
-		Q2.coefficient(1,0) += 2 * wedges( _wMStencil , _xy , xy );
-		Q2.coefficient(0,1) += 2 * wedges( _wMStencil , x_y , xy );
-		Q2.coefficient(0,0) +=     wedges( _wMStencil , xy , xy );
+		Q2.coefficient(2,2) +=     wedges( indexer , _wMStencil , _x , _y , _x , _y );
+		Q2.coefficient(2,1) += 2 * wedges( indexer , _wMStencil , _x , _y , _x ,  y );
+		Q2.coefficient(1,2) += 2 * wedges( indexer , _wMStencil , _x , _y ,  x ,  y );
+		Q2.coefficient(2,0) +=     wedges( indexer , _wMStencil , _x ,  y , _x ,  y );
+		Q2.coefficient(0,2) +=     wedges( indexer , _wMStencil ,  x , _y ,  x , _y );
+		Q2.coefficient(1,1) += 2 * wedges( indexer , _wMStencil , _x ,  y ,  x , _y ) + 2 * wedges( indexer , _wMStencil , _x , _y , x , y );
+		Q2.coefficient(1,0) += 2 * wedges( indexer , _wMStencil , _x ,  y ,  x ,  y );
+		Q2.coefficient(0,1) += 2 * wedges( indexer , _wMStencil ,  x , _y ,  x ,  y );
+		Q2.coefficient(0,0) +=     wedges( indexer , _wMStencil ,  x ,  y ,  x ,  y );
 
 		Q2.coefficient(2,0) +=      ( _R * _x ).dot( _x );
 		Q2.coefficient(1,0) += 2. * ( _R * x ).dot( _x );
@@ -585,9 +576,8 @@ namespace MishaK
 			const typename Hat::ScalarFunctions< Dim >::template FullIntegrationStencil< double , 1 >::Row &row = _sSStencil.row( F1 );
 			for( unsigned int i=0 ; i<row.size() ; i++ )
 			{
-				double value = row[i].second * _sWeight;
-				Hat::Index< Dim > I = row[i].first + Off;
-				size_t _idx = neighbors( &I[0] );
+				size_t _idx = neighbors.data[ std::get< 1 >( row[i] ) ];
+				double value = std::get< 2 >( row[i] ) * _sWeight;
 				if( _idx!=-1 )
 				{
 					if( idx==_idx )
@@ -613,8 +603,7 @@ namespace MishaK
 		const std::vector< typename Hat::AlternatingProductFunctions< Dim >::template FullIntegrationStencil< double >::Row > &rows = _wMStencil.rows( F1 );
 		for( unsigned int i=0 ; i<rows.size() ; i++ )
 		{
-			Hat::Index< Dim > I = rows[i].f2 + Off;
-			size_t i2 = neighbors( &I[0] );
+			size_t i2 = neighbors.data[ rows[i]._f2 ];
 			if( i2==-1 ) continue;
 			const std::vector< typename Hat::AlternatingProductFunctions< Dim >::template FullIntegrationStencil< double >::Entry > &entries = rows[i].entries;
 			for( unsigned int j=0 ; j<entries.size() ; j++ )

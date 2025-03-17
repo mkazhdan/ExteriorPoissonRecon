@@ -260,8 +260,9 @@ template< unsigned int Dim >
 template< typename T , unsigned int Radius>
 ScalarFunctions< Dim >::FullIntegrationStencil< T , Radius >::FullIntegrationStencil( const IntegrationStencil< T , 2 , Radius > &stencil , unsigned int res ) : _res( res ) , _rows( StencilNum() )
 {
+	Hat::Index< Dim > Off;
 	Range< Dim > eRange , fRange , range;
-	for( unsigned int d=0 ; d<Dim ; d++ ) eRange.first[d] = 0 , eRange.second[d] = _res , fRange.first[d] = 0 , fRange.second[d] = _res+1 , range.first[d] = 0 , range.second[d] = 3+4*Radius;
+	for( unsigned int d=0 ; d<Dim ; d++ ) Off[d] = 1 , eRange.first[d] = 0 , eRange.second[d] = _res , fRange.first[d] = 0 , fRange.second[d] = _res+1 , range.first[d] = 0 , range.second[d] = 3+4*Radius;
 
 	auto f = [&]( Index< Dim > f1 )
 	{
@@ -284,7 +285,7 @@ ScalarFunctions< Dim >::FullIntegrationStencil< T , Radius >::FullIntegrationSte
 		Range< Dim >::Intersect( Basis< Dim >::FunctionSupport( f1 ).dilate( Radius ) , eRange ).process( f );
 
 		_row.reserve( row.size() );
-		for( auto iter=row.begin() ; iter!=row.end() ; iter++ ) _row.push_back( Entry( iter->first , iter->second ) );
+		for( auto iter=row.begin() ; iter!=row.end() ; iter++ ) _row.push_back( Entry( iter->first , ScalarFunctions< Dim >::FunctionIndex( iter->first + Off , 2 ) , iter->second ) );
 
 		_rows[ StencilIndex(f1,_res) ] = _row;
 	};
@@ -651,9 +652,8 @@ T ScalarFunctions< Dim >::operator()( const Indexer & indexer , const FullIntegr
 			const typename Hat::ScalarFunctions< Dim >::FullIntegrationStencil< T , 0 >::Row &row = stencil.row( F1 );
 			for( unsigned int j=0 ; j<row.size() ; j++ )
 			{
-				Index< Dim > I = row[j].first + Off;
-				size_t f2 = neighbors( &I[0] );
-				if( f2!=-1 ) integrals[t] += row[j].second * x[f1] * y[f2];
+				size_t f2 = neighbors.data[ std::get< 1 >( row[j] ) ];
+				if( f2!=-1 ) integrals[t] += std::get< 2 >( row[j] ) * x[f1] * y[f2];
 			}
 		}
 	);

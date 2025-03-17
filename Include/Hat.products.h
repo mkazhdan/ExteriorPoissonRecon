@@ -41,23 +41,31 @@ struct ProductFunctions
 	{
 		struct Entry
 		{
-			Index< Dim > g1 , g2;	// All pairs of overlapping functions (except g1=g2 if not symmetric)
+			Index< Dim > G1 , G2;	// All pairs of overlapping functions (except g1=g2 if not symmetric)
 			long long dg1 , dg2;	// The relative (1D) index offsets
 			unsigned int _g1, _g2; 
 			T value;
-			Entry(Index< Dim > g1, Index< Dim > g2, size_t dg1, size_t dg2, T value) : g1(g1), g2(g2), dg1(dg1), dg2(dg2), value(value) 
+			Entry( Index< Dim > G1 , Index< Dim > G2 , size_t dg1 , size_t dg2 , T value ) : G1(G1), G2(G2) , dg1(dg1), dg2(dg2) , value(value) 
 			{
-				for (unsigned int d = 0; d < Dim; d++) g1[d]++, g2[d]++;
-				_g1 = (unsigned int)ScalarFunctions< Dim >::FunctionIndex(g1, 2);
-				_g2 = (unsigned int)ScalarFunctions< Dim >::FunctionIndex(g2, 2);
+				// Offsetting so that (0,0,0) is the corner
+				for( unsigned int d=0 ; d<Dim ; d++ ) G1[d]++ , G2[d]++;
+				_g1 = (unsigned int)ScalarFunctions< Dim >::FunctionIndex( G1 , 2 );
+				_g2 = (unsigned int)ScalarFunctions< Dim >::FunctionIndex( G2 , 2 );
 			}
 		};
 
 		struct Row
 		{
-			Index< Dim > f2;	// All functions with overlapping support (except f1=f2 if not symmetric)
+			Index< Dim > F2;	// All functions with overlapping support (except f1=f2 if not symmetric)
 			long long df2;		// The relative (1D) index offset
+			unsigned int _f2;
 			std::vector< Entry > entries;
+			Row( Index< Dim > F2 , size_t df2 ) : F2(F2) , df2(df2)
+			{
+				for( unsigned int d=0 ; d<Dim ; d++ ) this->F2[d]++;
+				_f2 = (unsigned int)ScalarFunctions< Dim >::FunctionIndex( this->F2 , 2 );
+			}
+
 		};
 
 		FullIntegrationStencil( const IntegrationStencil< T , 2 , 0 > &stencil , unsigned int res );
@@ -133,14 +141,6 @@ struct ProductFunctions
 	////////////////////////
 	// Stencil evaluation //
 	////////////////////////
-
-	// Evaluates the stencil on a pair of functions
-	template< typename T >
-	T operator()( const     IntegrationStencil< T , 2 , 0 > &stencil , const Eigen::VectorXd &xy1 , const Eigen::VectorXd &xy2 ) const;
-
-	// Evaluates the stencil on a pair of functions
-	template< typename T >
-	T operator()( const FullIntegrationStencil< T > &stencil , const Eigen::VectorXd &xy1 , const Eigen::VectorXd &xy2 ) const;
 
 	// Evaluates the stencil on the pair of functions generated as the product of pairs of functions
 	template< typename T , typename Indexer /* = Hat::BaseIndex< Dim > */ >

@@ -143,7 +143,7 @@ struct ScalarFunctions
 	struct FullIntegrationStencil
 	{
 		static constexpr unsigned int StencilNum( void ); // (3+4*Radius)^Dim
-		using Entry = std::pair< Index< Dim > , T >;
+		using Entry = std::tuple< Index< Dim > , unsigned int , T >;
 		using Row = std::vector< Entry >;
 
 		FullIntegrationStencil( const IntegrationStencil< T , 2 , Radius > &stencil , unsigned int res );
