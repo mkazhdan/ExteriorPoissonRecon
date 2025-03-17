@@ -619,10 +619,8 @@ namespace MishaK
 			const std::vector< typename Hat::AlternatingProductFunctions< Dim >::template FullIntegrationStencil< double >::Entry > &entries = rows[i].entries;
 			for( unsigned int j=0 ; j<entries.size() ; j++ )
 			{
-				Hat::Index< Dim > J1 = entries[j].g1 + Off;
-				Hat::Index< Dim > J2 = entries[j].g2 + Off;
-				size_t j1 = neighbors( &J1[0] );
-				size_t j2 = neighbors( &J2[0] );
+				size_t j1 = neighbors.data[ entries[j]._g1 ];
+				size_t j2 = neighbors.data[ entries[j]._g2 ];
 
 				if( j1==-1 || j2==-1 ) continue;
 

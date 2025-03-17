@@ -475,7 +475,7 @@ template< unsigned int Dim >
 size_t ScalarFunctions< Dim >::FunctionIndex( Index< Dim > i , unsigned int res )
 {
 	size_t idx=0;
-	for( unsigned int d=0 ; d<Dim ; d++ ) idx = idx*(res+1) + i[Dim-d-1];
+	for( unsigned int d=0 ; d<Dim ; d++ ) idx = idx*(res+1) + i[d];
 	return idx;
 }
 
@@ -485,7 +485,7 @@ Index< Dim > ScalarFunctions< Dim >::FunctionIndex( size_t i , unsigned int res 
 	Index< Dim > idx;
 	for( unsigned int d=0 ; d<Dim ; d++ )
 	{
-		idx[d] = i % (res+1);
+		idx[Dim-d-1] = i % (res+1);
 		i /= res+1;
 	}
 	return idx;
