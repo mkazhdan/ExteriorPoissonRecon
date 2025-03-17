@@ -26,8 +26,6 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 DAMAGE.
 */
 
-#include "Polynomial.h"
-
 ///////////////////////////
 // IsoSurface3D::_Vertex //
 ///////////////////////////
@@ -50,7 +48,7 @@ const std::string IsoSurface3D< Real , Index >::InterpolationNames[] = { "linear
 template< typename Real , typename Index >
 void IsoSurface3D< Real , Index >::Extract( const unsigned int res[3] , const Point< Real , 3 > bBox[2] , std::function< Real ( Point< Real , 3 > ) > vFunction , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType )
 {
-	RegularGrid< Real , 3 > grid;
+	RegularGrid< 3 , Real > grid;
 	grid.resize( res );
 	Point< Real , 3 > d = bBox[1]-bBox[0];
 	for( unsigned int i=0 ; i<3 ; i++ ) d[i] /= res[i]-1;
@@ -63,7 +61,7 @@ void IsoSurface3D< Real , Index >::Extract( const unsigned int res[3] , const Po
 template< typename Real , typename Index >
 void IsoSurface3D< Real , Index >::Extract( const unsigned int res[3] , const Point< Real , 3 > bBox[2] , std::function< Real ( Point< Real , 3 > ) > vFunction , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold )
 {
-	RegularGrid< Real , 3 > grid;
+	RegularGrid< 3 , Real > grid;
 	grid.resize( res );
 	Point< Real , 3 > d = bBox[1]-bBox[0];
 	for( unsigned int i=0 ; i<3 ; i++ ) d[i] /= res[i]-1;
@@ -137,19 +135,19 @@ void IsoSurface3D< Real , Index >::Extract( const unsigned int res[3] , ConstPoi
 }
 
 template< typename Real , typename Index >
-void IsoSurface3D< Real , Index >::Extract( const RegularGrid< Real , 3 > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType )
+void IsoSurface3D< Real , Index >::Extract( const RegularGrid< 3 , Real > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType )
 {
 	return Extract( voxelGrid.res() , voxelGrid() , isoValue , vertices , polygons , fullCaseTable , interpolationType );
 }
 
 template< typename Real , typename Index >
-void IsoSurface3D< Real , Index >::Extract( const RegularGrid< Real , 3 > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold  )
+void IsoSurface3D< Real , Index >::Extract( const RegularGrid< 3 , Real > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold  )
 {
 	return Extract( voxelGrid.res() , voxelGrid() , isoValue , vertices , triangles , fullCaseTable , interpolationType , manifold );
 }
 
 template< typename Real , typename Index >
-void IsoSurface3D< Real , Index >::_Extract( const RegularGrid< Real , 3 > &voxelGrid , Real isoValue , std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType )
+void IsoSurface3D< Real , Index >::_Extract( const RegularGrid< 3 , Real > &voxelGrid , Real isoValue , std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType )
 {
 	_Extract( voxelGrid.res() , voxelGrid() , isoValue , vertices , polygons , fullCaseTable , interpolationType );
 }
@@ -294,47 +292,54 @@ Real IsoSurface3D< Real , Index >::_CatmullRomInterpolant( Real x0 , Real x1 , R
 template< typename Real , typename Index >
 void IsoSurface3D< Real , Index >::_SetFlags( int resX , int resY , ConstPointer( Real ) values , Real isoValue , Pointer( unsigned char ) flags )
 {
-#pragma omp parallel for
-	for( int i=0 ; i<resX*resY ; i++ ) flags[i] = MarchingCubes::ValueLabel( values[i] , isoValue );
+	ThreadPool::ParallelFor( 0 , resX*resY , [&]( unsigned int , size_t i ){ flags[i] = MarchingCubes::ValueLabel( values[i] , isoValue ); } );
 }
 
 template< typename Real , typename Index >
 void IsoSurface3D< Real , Index >::_SetZVertices( int resX , int resY , int z , ConstPointer( Real ) values0 , ConstPointer( Real ) values1 , ConstPointer( Real ) values2 , ConstPointer( Real ) values3 , ConstPointer( unsigned char ) flags1 , ConstPointer( unsigned char ) flags2 , Real isoValue , int interpolationType , std::unordered_map< long long , Index >& isoVertexMap , std::vector< _Vertex >& vertices )
 {
 #define INDEX( x , y ) ( x + (y)*resX )
-#pragma omp parallel for
-	for( int i=0 ; i<resX ; i++ ) for( int j=0 ; j<resY ; j++ )
-	{
-		int idx = INDEX( i , j );
-		if( flags1[idx]!=flags2[idx] )
-		{
-			Real iso;
-			switch( interpolationType )
+	std::mutex mutex;
+	ThreadPool::ParallelFor
+		(
+			0 , resX ,
+			[&]( unsigned int , size_t i )
 			{
-			case INTERPOLATE_LINEAR:
-				iso = _LinearInterpolant( values1[idx] , values2[idx] , isoValue );
-				break;
-			case INTERPOLATE_QUADRATIC:
-				iso = _QuadraticInterpolant( values0 ? values0[idx] : values1[idx] , values1[idx] , values2[idx] , values3 ? values3[idx] : values2[idx] , isoValue );
-				break;
-			case INTERPOLATE_CUBIC:
-				iso = _CubicInterpolant( values0 ? values0[idx] : values1[idx] , values1[idx] , values2[idx] , values3 ? values3[idx] : values2[idx] , isoValue );
-				break;
-			case INTERPOLATE_CATMULL_ROM:
-				iso = _CatmullRomInterpolant( values0 ? values0[idx] : values1[idx] , values1[idx] , values2[idx] , values3 ? values3[idx] : values2[idx] , isoValue );
-				break;
-			default:
-				ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+				for( int j=0 ; j<resY ; j++ )
+				{
+					int idx = INDEX( i , j );
+					if( flags1[idx]!=flags2[idx] )
+					{
+						Real iso;
+						switch( interpolationType )
+						{
+						case INTERPOLATE_LINEAR:
+							iso = _LinearInterpolant( values1[idx] , values2[idx] , isoValue );
+							break;
+						case INTERPOLATE_QUADRATIC:
+							iso = _QuadraticInterpolant( values0 ? values0[idx] : values1[idx] , values1[idx] , values2[idx] , values3 ? values3[idx] : values2[idx] , isoValue );
+							break;
+						case INTERPOLATE_CUBIC:
+							iso = _CubicInterpolant( values0 ? values0[idx] : values1[idx] , values1[idx] , values2[idx] , values3 ? values3[idx] : values2[idx] , isoValue );
+							break;
+						case INTERPOLATE_CATMULL_ROM:
+							iso = _CatmullRomInterpolant( values0 ? values0[idx] : values1[idx] , values1[idx] , values2[idx] , values3 ? values3[idx] : values2[idx] , isoValue );
+							break;
+						default:
+							ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+						}
+						Point3D< Real > p = Point3D< Real >( (Real)i , (Real)j , (Real)z + iso );
+						long long key = i + j*(resX);
+						{
+							std::lock_guard< std::mutex > lock( mutex );
+							isoVertexMap[key] = (Index)vertices.size();
+							vertices.push_back( _Vertex( p , 2 , i , j , z ) );
+						}
+					}
+				}
 			}
-			Point3D< Real > p = Point3D< Real >( (Real)i , (Real)j , (Real)z + iso );
-			long long key = i + j*(resX);
-#pragma omp critical
-			{
-				isoVertexMap[key] = (Index)vertices.size();
-				vertices.push_back( _Vertex( p , 2 , i , j , z ) );
-			}
-		}
-	}
+		);
+
 #undef INDEX
 }
 
@@ -342,72 +347,86 @@ template< typename Real , typename Index >
 void IsoSurface3D< Real , Index >::_SetXYVertices( int resX , int resY , int z , ConstPointer( Real ) values , ConstPointer( unsigned char ) flags , Real isoValue , int interpolationType , std::unordered_map< long long , Index >& xIsoVertexMap , std::unordered_map< long long , Index >& yIsoVertexMap , std::vector< _Vertex >& vertices )
 {
 #define INDEX( x , y ) ( x + (y)*resX )
-#pragma omp parallel for
-	for( int i=0 ; i<resX-1 ; i++ ) for( int j=0 ; j<resY ; j++ )
-	{
-		int idx1 = INDEX( i , j ) , idx2 = INDEX( i+1 , j );
-		if( flags[idx1]!=flags[idx2] )
-		{
-			Real iso;
-			switch( interpolationType )
+	std::mutex mut;
+	ThreadPool::ParallelFor
+		(
+			0 , resX-1 ,
+			[&]( unsigned int , size_t i )
 			{
-			case INTERPOLATE_LINEAR:
-				iso = _LinearInterpolant( values[idx1] , values[idx2] , isoValue );
-				break;
-			case INTERPOLATE_QUADRATIC:
-				iso = _QuadraticInterpolant( i>0 ? values[ INDEX(i-1,j) ] : values[idx1] , values[idx1] , values[idx2] , i+1<resX-1 ? values[ INDEX(i+2,j) ] : values[idx2] , isoValue );
-				break;
-			case INTERPOLATE_CUBIC:
-				iso = _CubicInterpolant( i>0 ? values[ INDEX(i-1,j) ] : values[idx1] , values[idx1] , values[idx2] , i+1<resX-1 ? values[ INDEX(i+2,j) ] : values[idx2] , isoValue );
-				break;
-			case INTERPOLATE_CATMULL_ROM:
-				iso = _CatmullRomInterpolant( i>0 ? values[ INDEX(i-1,j) ] : values[idx1] , values[idx1] , values[idx2] , i+1<resX-1 ? values[ INDEX(i+2,j) ] : values[idx2] , isoValue );
-				break;
-			default:
-				ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+				for( int j=0 ; j<resY ; j++ )
+				{
+					int idx1 = INDEX( i , j ) , idx2 = INDEX( i+1 , j );
+					if( flags[idx1]!=flags[idx2] )
+					{
+						Real iso;
+						switch( interpolationType )
+						{
+						case INTERPOLATE_LINEAR:
+							iso = _LinearInterpolant( values[idx1] , values[idx2] , isoValue );
+							break;
+						case INTERPOLATE_QUADRATIC:
+							iso = _QuadraticInterpolant( i>0 ? values[ INDEX(i-1,j) ] : values[idx1] , values[idx1] , values[idx2] , i+1<resX-1 ? values[ INDEX(i+2,j) ] : values[idx2] , isoValue );
+							break;
+						case INTERPOLATE_CUBIC:
+							iso = _CubicInterpolant( i>0 ? values[ INDEX(i-1,j) ] : values[idx1] , values[idx1] , values[idx2] , i+1<resX-1 ? values[ INDEX(i+2,j) ] : values[idx2] , isoValue );
+							break;
+						case INTERPOLATE_CATMULL_ROM:
+							iso = _CatmullRomInterpolant( i>0 ? values[ INDEX(i-1,j) ] : values[idx1] , values[idx1] , values[idx2] , i+1<resX-1 ? values[ INDEX(i+2,j) ] : values[idx2] , isoValue );
+							break;
+						default:
+							ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+						}
+						Point3D< Real > p = Point3D< Real >( (Real)i + iso , (Real)j , (Real)z );
+						long long key = i + j*(resX);
+						{
+							std::lock_guard< std::mutex > lock( mut );
+							xIsoVertexMap[key] = (Index)vertices.size();
+							vertices.push_back( _Vertex( p , 0 , i , j , z ) );
+						}
+					}
+				}
 			}
-			Point3D< Real > p = Point3D< Real >( (Real)i + iso , (Real)j , (Real)z );
-			long long key = i + j*(resX);
-#pragma omp critical
+		);
+
+	ThreadPool::ParallelFor
+		(
+			0 , resX ,
+			[&]( unsigned int , size_t i )
 			{
-				xIsoVertexMap[key] = (Index)vertices.size();
-				vertices.push_back( _Vertex( p , 0 , i , j , z ) );
+				for( int j=0 ; j<resY-1 ; j++ )
+				{
+					int idx1 = INDEX( i , j ) , idx2 = INDEX( i , j+1 );
+					if( flags[idx1]!=flags[idx2] )
+					{
+						Real iso;
+						switch( interpolationType )
+						{
+						case INTERPOLATE_LINEAR:
+							iso = _LinearInterpolant( values[idx1] , values[idx2] , isoValue );
+							break;
+						case INTERPOLATE_QUADRATIC:
+							iso = _QuadraticInterpolant( j>0 ? values[ INDEX(i,j-1) ] : values[idx1] , values[idx1] , values[idx2] , j+1<resY-1 ? values[ INDEX(i,j+2) ] : values[idx2] , isoValue );
+							break;
+						case INTERPOLATE_CUBIC:
+							iso = _CubicInterpolant( j>0 ? values[ INDEX(i,j-1) ] : values[idx1] , values[idx1] , values[idx2] , j+1<resY-1 ? values[ INDEX(i,j+2) ] : values[idx2] , isoValue );
+							break;
+						case INTERPOLATE_CATMULL_ROM:
+							iso = _CatmullRomInterpolant( j>0 ? values[ INDEX(i,j-1) ] : values[idx1] , values[idx1] , values[idx2] , j+1<resY-1 ? values[ INDEX(i,j+2) ] : values[idx2] , isoValue );
+							break;
+						default:
+							ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+						}
+						Point3D< Real > p = Point3D< Real >( (Real)i , (Real)j + iso , (Real)z );
+						long long key = i + j*(resX);
+						{
+							std::lock_guard< std::mutex > lock( mut );
+							yIsoVertexMap[key] = (int)vertices.size();
+							vertices.push_back( _Vertex( p , 1 , i , j , z ) );
+						}
+					}
+				}
 			}
-		}
-	}
-#pragma omp parallel for
-	for( int i=0 ; i<resX ; i++ ) for( int j=0 ; j<resY-1 ; j++ )
-	{
-		int idx1 = INDEX( i , j ) , idx2 = INDEX( i , j+1 );
-		if( flags[idx1]!=flags[idx2] )
-		{
-			Real iso;
-			switch( interpolationType )
-			{
-			case INTERPOLATE_LINEAR:
-				iso = _LinearInterpolant( values[idx1] , values[idx2] , isoValue );
-				break;
-			case INTERPOLATE_QUADRATIC:
-				iso = _QuadraticInterpolant( j>0 ? values[ INDEX(i,j-1) ] : values[idx1] , values[idx1] , values[idx2] , j+1<resY-1 ? values[ INDEX(i,j+2) ] : values[idx2] , isoValue );
-				break;
-			case INTERPOLATE_CUBIC:
-				iso = _CubicInterpolant( j>0 ? values[ INDEX(i,j-1) ] : values[idx1] , values[idx1] , values[idx2] , j+1<resY-1 ? values[ INDEX(i,j+2) ] : values[idx2] , isoValue );
-				break;
-			case INTERPOLATE_CATMULL_ROM:
-				iso = _CatmullRomInterpolant( j>0 ? values[ INDEX(i,j-1) ] : values[idx1] , values[idx1] , values[idx2] , j+1<resY-1 ? values[ INDEX(i,j+2) ] : values[idx2] , isoValue );
-				break;
-			default:
-				ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
-			}
-			Point3D< Real > p = Point3D< Real >( (Real)i , (Real)j + iso , (Real)z );
-			long long key = i + j*(resX);
-#pragma omp critical
-			{
-				yIsoVertexMap[key] = (int)vertices.size();
-				vertices.push_back( _Vertex( p , 1 , i , j , z ) );
-			}
-		}
-	}
+		);
 #undef INDEX
 }
 
@@ -415,63 +434,72 @@ template< typename Real , typename Index >
 void IsoSurface3D< Real , Index >::_SetPolygons( int resX , int resY , int z , ConstPointer( Real ) values1 , ConstPointer( Real ) values2 , Real isoValue , bool fullCaseTable , const std::unordered_map< long long , Index >& xIsoVertexMap1 , const std::unordered_map< long long , Index >& xIsoVertexMap2 , const std::unordered_map< long long , Index >& yIsoVertexMap1 , const std::unordered_map< long long , Index >& yIsoVertexMap2 , const std::unordered_map< long long , Index >& zIsoVertexMap , const std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons )
 {
 #define INDEX( x , y ) ( x + (y)*resX )
-#pragma omp parallel for
-	for( int i=0 ; i<resX-1 ; i++ ) for( int j=0 ; j<resY-1 ; j++ )
-	{
-		Real _values[Cube::CORNERS];
-		for( int cx=0 ; cx<2 ; cx++ ) for( int cy=0 ; cy<2 ; cy++ )
-		{
-			_values[ Cube::CornerIndex(cx,cy,0) ] = values1[ INDEX(i+cx,j+cy) ];
-			_values[ Cube::CornerIndex(cx,cy,1) ] = values2[ INDEX(i+cx,j+cy) ];
-		}
-		int mcIndex = fullCaseTable ? MarchingCubes::GetFullIndex( _values , isoValue ) : MarchingCubes::GetIndex( _values , isoValue );
-		const std::vector< std::vector< int > >& isoPolygons = MarchingCubes::caseTable( mcIndex , fullCaseTable );
-		for( int p=0 ; p<isoPolygons.size() ; p++ )
-		{
-			const std::vector< int >& isoPolygon = isoPolygons[p];
-			std::vector< Index > polygon( isoPolygon.size() );
-			for( int v=0 ; v<isoPolygon.size() ; v++ )
+	std::mutex mut;
+	ThreadPool::ParallelFor
+		(
+			0 , resX-1 ,
+			[&]( unsigned int , size_t i )
 			{
-				int orientation , i1 , i2;
-				Cube::FactorEdgeIndex( isoPolygon[v] , orientation , i1 , i2 );
-				long long key;
-				typename std::unordered_map< long long , Index >::const_iterator iter;
-				bool success;
-				switch( orientation )
+				for( int j=0 ; j<resY-1 ; j++ )
 				{
-				case 0:
-					key = (i   ) + (j+i1)*resX;
-					if( i2==0 ){ iter = xIsoVertexMap1.find( key ) ; success = iter!=xIsoVertexMap1.end(); }
-					else       { iter = xIsoVertexMap2.find( key ) ; success = iter!=xIsoVertexMap2.end(); }
-					break;
-				case 1:
-					key = (i+i1) + (j   )*resX;
-					if( i2==0 ){ iter = yIsoVertexMap1.find( key ) ; success = iter!=yIsoVertexMap1.end(); }
-					else       { iter = yIsoVertexMap2.find( key ) ; success = iter!=yIsoVertexMap2.end(); }
-					break;
-				case 2:
-					key = (i+i1) + (j+i2)*resX;
-					iter = zIsoVertexMap.find( key ) ; success = iter!=zIsoVertexMap.end();
-					break;
-				}
-
-				if( !success )
-				{
-					fprintf( stderr , "[ERROR] Couldn't find iso-vertex in map:\n" );
-					printf( "\t%d: " , orientation );
-					switch( orientation )
+					Real _values[Cube::CORNERS];
+					for( int cx=0 ; cx<2 ; cx++ ) for( int cy=0 ; cy<2 ; cy++ )
 					{
-					case 0: printf( "%d %d %d\n" , i , j+i1 , z+i2 ) ; break;
-					case 1: printf( "%d %d %d\n" , i+i1 , j , z+i2 ) ; break;
-					case 2: printf( "%d %d %d\n" , i+i1 , j+i2 , z ) ; break;
+						_values[ Cube::CornerIndex(cx,cy,0) ] = values1[ INDEX(i+cx,j+cy) ];
+						_values[ Cube::CornerIndex(cx,cy,1) ] = values2[ INDEX(i+cx,j+cy) ];
 					}
-					exit( 0 );
+					int mcIndex = fullCaseTable ? MarchingCubes::GetFullIndex( _values , isoValue ) : MarchingCubes::GetIndex( _values , isoValue );
+					const std::vector< std::vector< int > >& isoPolygons = MarchingCubes::caseTable( mcIndex , fullCaseTable );
+					for( int p=0 ; p<isoPolygons.size() ; p++ )
+					{
+						const std::vector< int >& isoPolygon = isoPolygons[p];
+						std::vector< Index > polygon( isoPolygon.size() );
+						for( int v=0 ; v<isoPolygon.size() ; v++ )
+						{
+							int orientation , i1 , i2;
+							Cube::FactorEdgeIndex( isoPolygon[v] , orientation , i1 , i2 );
+							long long key;
+							typename std::unordered_map< long long , Index >::const_iterator iter;
+							bool success;
+							switch( orientation )
+							{
+							case 0:
+								key = (i   ) + (j+i1)*resX;
+								if( i2==0 ){ iter = xIsoVertexMap1.find( key ) ; success = iter!=xIsoVertexMap1.end(); }
+								else       { iter = xIsoVertexMap2.find( key ) ; success = iter!=xIsoVertexMap2.end(); }
+								break;
+							case 1:
+								key = (i+i1) + (j   )*resX;
+								if( i2==0 ){ iter = yIsoVertexMap1.find( key ) ; success = iter!=yIsoVertexMap1.end(); }
+								else       { iter = yIsoVertexMap2.find( key ) ; success = iter!=yIsoVertexMap2.end(); }
+								break;
+							case 2:
+								key = (i+i1) + (j+i2)*resX;
+								iter = zIsoVertexMap.find( key ) ; success = iter!=zIsoVertexMap.end();
+								break;
+							}
+
+							if( !success )
+							{
+								fprintf( stderr , "[ERROR] Couldn't find iso-vertex in map:\n" );
+								printf( "\t%d: " , orientation );
+								switch( orientation )
+								{
+								case 0: printf( "%d %d %d\n" , i , j+i1 , z+i2 ) ; break;
+								case 1: printf( "%d %d %d\n" , i+i1 , j , z+i2 ) ; break;
+								case 2: printf( "%d %d %d\n" , i+i1 , j+i2 , z ) ; break;
+								}
+								exit( 0 );
+							}
+							polygon[v] = iter->second;
+						}
+						{
+							std::lock_guard< std::mutex > lock( mut );
+							polygons.push_back( polygon );
+						}
+					}
 				}
-				polygon[v] = iter->second;
 			}
-#pragma omp critical
-			polygons.push_back( polygon );
-		}
-	}
+		);
 #undef INDEX
 }

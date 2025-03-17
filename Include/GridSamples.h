@@ -1,4 +1,33 @@
+/*
+Copyright (c) 2025, Michael Kazhdan, Sing-Chun Lee, Marc Alexa, and Maximilian Kohlbrenner
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of
+conditions and the following disclaimer. Redistributions in binary form must reproduce
+the above copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the distribution. 
+
+Neither the name of the Johns Hopkins University nor the names of its contributors
+may be used to endorse or promote products derived from this software without specific
+prior written permission. 
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES 
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+*/
+
 #ifndef GRID_SAMPLES_INCLUDED
+#define GRID_SAMPLES_INCLUDED
 
 #include <vector>
 #include <Eigen/Eigenvalues>
@@ -6,458 +35,247 @@
 #include "Misha/Geometry.h"
 #include "Misha/RegularGrid.h"
 #include "Misha/Algebra.h"
+#include "Misha/Streams.h"
+#include "Misha/RegularTree.h"
+#include "Misha/MultiThreading.h"
 #include "Hat.h"
+#include "OrderedSamples.h"
 
-//#define NEW_GRID_SAMPLES	// For multi-sampling, samplesPerCell is defined by depth
-
-namespace GridSamples
+namespace MishaK
 {
-	template< unsigned int Degree=(unsigned int)-1 >struct BSpline;
-
-	// Run-time implementation of B-spline weight evaluation
-	template<>
-	struct BSpline< (unsigned int)-1 >
+	namespace GridSamples
 	{
-		// Assuming x \in [0,1], evaluates the supported B-splines
-		static void Evaluate( unsigned int degree , double x , double values[/*degree+1*/] );
-	};
+		template< unsigned int Degree=(unsigned int)-1 >struct BSpline;
 
-	// Templated implementation of B-spline weight evaluation
-	template< unsigned int Degree >
-	struct BSpline
-	{
-		// Assuming x \in [0,1], evaluates the supported B-splines
-		static void Evaluate( double x , double values[Degree+1] );
-	};
-
-
-	// A pure abstract class that supports evaluating the measure, noise, and depth at a point in the unit cube.
-	template< unsigned int Dim > struct Estimator
-	{
-		// The measure per unit volume at a given position
-		virtual double measure( Point< double , Dim > ) const = 0;
-		// The estimate of noise at a given position
-		virtual double noise( Point< double , Dim > ) const = 0;
-		// The measur eof the sample's depth at a given position
-		virtual double depth( Point< double , Dim > ) const = 0;
-	};
-
-	// A struct describing the distribution of samples
-	template< unsigned int Dim >
-	struct DensityAndNoiseInfo : public VectorSpace< double , DensityAndNoiseInfo< Dim > >
-	{
-		double weightSum;
-		Point< double , Dim > positionSum;
-		SquareMatrix< double , Dim > covarianceSum;
-		DensityAndNoiseInfo( void );
-		DensityAndNoiseInfo( Point< double , Dim > p , double weight );
-		//////////////////////////
-		// Vector space methods //
-		void Add  ( const DensityAndNoiseInfo &ni );
-		void Scale( double s );
-		//////////////////////////
-
-		double noise( unsigned int coDim ) const;
-		double measure( void ) const;
-	};
-
-	// A struct for splatting a sample into a grid
-	template< unsigned int Dim >
-	struct Splatter
-	{
-		Splatter( unsigned int depth , unsigned int bSplineDegree , bool unitKernel );
-		~Splatter( void );
-
-		template< typename DataType >
-		void operator()( DataType *g , std::pair< Point< double , Dim > , DataType > sample );
-
-		// Splats the values into the corners of the cell containg the sample using the B-spline weights
-		template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( unsigned int idx ) */ >
-		static RegularGrid< DataType , Dim > SplatSamples( unsigned int bSplineDegree , unsigned int depth , SampleFunctor F , size_t sampleNum , DataType zeroValue , bool unitKernel );
-
-		// Splats the values into the corners of the cell containg the sample using multi-linear weights
-		template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( unsigned int idx ) */ >
-		static void SplatSamples( unsigned int bSplineDegree , RegularGrid< DataType , Dim > &g , SampleFunctor F , size_t sampleNum , bool unitKernel );
-
-		// Splats the values into the corners of the cell containg the sample using multi-linear weights
-		template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( unsigned int idx ) */ >
-		static void SplatSamples_parallel( unsigned int bSplineDegree , RegularGrid< DataType , Dim > &g , SampleFunctor F , size_t sampleNum , DataType zeroValue , bool unitKernel );
-
-	protected:
-		double *_values;
-		Hat::ScalarFunctions< Dim > _scalars;
-		int _bSplineStart;
-		unsigned int _bSplineDegree , _res;
-		Hat::Range< Dim > _range;
-		double _kernelScale;
-	};
-
-	// A struct for splatting a sample from a (Dim-CoDim)-dimensional manifold, living in Dim-dimensional Euclidean space into a grid
-	template< unsigned int Dim , unsigned int CoDim >
-	struct SingleEstimator : public RegularGrid< DensityAndNoiseInfo< Dim > , Dim > , Estimator< Dim >
-	{
-		SingleEstimator( unsigned int depth );
-		unsigned int depth( void ) const;
-		DensityAndNoiseInfo< Dim > operator()( Point< double , Dim > p ) const;
-		double        measure( Point< double , Dim > p ) const;
-		double          noise( Point< double , Dim > p ) const;
-		double samplesPerCell( Point< double , Dim > p ) const;
-		double          depth( Point< double , Dim > p ) const;
-
-		template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
-		static SingleEstimator Get( unsigned int kernelRadius , unsigned int depth , SampleFunctor F , size_t sampleNum );
-
-		template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
-		static void Set( SingleEstimator &estimator , unsigned int kernelRadius , SampleFunctor F , size_t sampleNum );
-
-	protected:
-		unsigned int _depth;
-	};
-
-	template< unsigned int Dim , unsigned int CoDim >
-	struct MultiEstimator : public Estimator< Dim >
-	{
-		MultiEstimator( unsigned int depth , double samplesPerCell );
-		double depth( Point< double , Dim > p ) const;
-		DensityAndNoiseInfo< Dim > operator()( Point< double , Dim > p ) const;
-		double        measure( Point< double , Dim > p ) const;
-		double          noise( Point< double , Dim > p ) const;
-#ifdef NEW_GRID_SAMPLES
-#else // !NEW_GRID_SAMPLES
-		template< bool Finest >
-#endif // NEW_GRID_SAMPLES
-		double samplesPerCell( Point< double , Dim > p ) const;
-
-		template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
-		static MultiEstimator Get( unsigned int kernelRadius , unsigned int depth , SampleFunctor F , size_t sampleNum , double samplesPerCell=pow(2.,Dim-CoDim) );
-	protected:
-		std::vector< SingleEstimator< Dim , CoDim > > _info;
-		double _samplesPerCell;
-	};
-
-	/////////////
-	// BSpline //
-	/////////////
-	template< unsigned int Degree >
-	void BSpline< Degree >::Evaluate( double x , double values[Degree+1] )
-	{
-		if constexpr( Degree==0 ) values[0] = 1.;
-		else
+		// Run-time implementation of B-spline weight evaluation
+		template<>
+		struct BSpline< (unsigned int)-1 >
 		{
-			const double Scale = 1./Degree;
-			BSpline< Degree-1 >::Evaluate( x , values+1 );
-			values[0] = values[1] * (1.-x) * Scale;
-			for( unsigned int i=1 ; i<Degree ; i++ )
-			{
-				double x1 = (x-i+Degree) , x2 = (-x+i+1);
-				values[i] = ( values[i]*x1 + values[i+1]*x2 ) * Scale;
-			}
-			values[Degree] *= x * Scale;
-		}
-	}
-
-	void BSpline< (unsigned int)-1 >::Evaluate( unsigned int degree , double x , double values[/*degree+1*/] )
-	{
-		if( degree==0 ) values[0] = 1.;
-		else
-		{
-			const double Scale = 1./degree;
-			Evaluate( degree-1 , x , values+1 );
-			values[0] = values[1] * (1.-x) * Scale;
-			for( unsigned int i=1 ; i<degree ; i++ )
-			{
-				double x1 = (x-i+degree) , x2 = (-x+i+1);
-				values[i] = ( values[i]*x1 + values[i+1]*x2 ) * Scale;
-			}
-			values[degree] *= x * Scale;
-		}
-	}
-
-	/////////////////////////
-	// DensityAndNoiseInfo //
-	/////////////////////////
-	template< unsigned int Dim >
-	DensityAndNoiseInfo< Dim >::DensityAndNoiseInfo( void ) : weightSum(0) {}
-
-	template< unsigned int Dim >
-	DensityAndNoiseInfo< Dim >::DensityAndNoiseInfo( Point< double , Dim > p , double weight ) : weightSum(weight) , positionSum(p*weight){ for( unsigned int i=0 ; i<Dim ; i++ ) for( unsigned int j=0 ; j<Dim ; j++ ) covarianceSum(i,j) = p[i] * p[j] * weight; }
-
-	template< unsigned int Dim >
-	void DensityAndNoiseInfo< Dim >::Add  ( const DensityAndNoiseInfo &ni ){ weightSum += ni.weightSum , positionSum += ni.positionSum , covarianceSum += ni.covarianceSum; }
-	
-	template< unsigned int Dim >
-	void DensityAndNoiseInfo< Dim >::Scale( double s ){ weightSum *= s , positionSum *= s , covarianceSum *= s; }
-
-	template< unsigned int Dim >
-	double DensityAndNoiseInfo< Dim >::noise( unsigned int coDim ) const
-	{
-		// Recall that if \sum_i w_i = 1 and c = \sum_i w_i * p_i
-		//		C = \sum_i w_i * ( p_i - c ) * ( p_i - c )^t
-		//		  = \sum_i w_i * ( p_i * p_i^t - p_i * c^t - c * p_i^t + c * c^t )
-		//		  = \sum_i w_i * p_i * p_i^t - \sum_i w_i( p_i * c^t + c * p_i^t ) + ( \sum_i w_i ) * c * c^t
-		//		  = \sum_i w_i * p_i * p_i^t - 2 * c * c^t + c * c^t
-		//		  = \sum_i w_i * p_i * p_i^t - c * c^t
-		Eigen::Matrix< double , Dim , Dim > C;
-
-		for( unsigned int i=0 ; i<Dim ; i++ ) for( unsigned int j=0 ; j<Dim ; j++ ) C(i,j) = covarianceSum(i,j)/weightSum - positionSum[i]/weightSum * positionSum[j]/weightSum;
-		Eigen::SelfAdjointEigenSolver< Eigen::Matrix< double , Dim , Dim > > es( C );
-		double sum = 0 , lowSum = 0;
-		for( unsigned int d=0 ; d<Dim ; d++ )
-		{
-			sum += es.eigenvalues()[d];
-			if( d<coDim ) lowSum += es.eigenvalues()[d];
-		}
-		return ( lowSum * Dim ) /( sum * coDim );
-	}
-
-	template< unsigned int Dim >
-	double DensityAndNoiseInfo< Dim >::measure( void ) const{ return 1./weightSum; }
-
-	//////////////
-	// Splatter //
-	//////////////
-	template< unsigned int Dim >
-	Splatter< Dim >::Splatter( unsigned int depth , unsigned int bSplineDegree , bool unitKernel ) : _res(1<<depth) , _scalars(1<<depth) , _bSplineDegree(bSplineDegree)
-	{
-		_values = new double[ Dim * ( _bSplineDegree+1 ) ];
-		_bSplineStart = -(int)(_bSplineDegree>>1);
-		for( unsigned int d=0 ; d<Dim ; d++ )
-		{
-			_range.first [d] = _bSplineStart;
-			_range.second[d] = _bSplineStart+_bSplineDegree+1;
-		}
-		_kernelScale = unitKernel ? ( 1<<(depth*Dim) ) : 1.;
-	}
-	template< unsigned int Dim >
-	Splatter< Dim >::~Splatter( void ){ delete _values; }
-
-	template< unsigned int Dim >
-	template< typename DataType >
-	void Splatter< Dim >::operator()( DataType *g , std::pair< Point< double , Dim > , DataType > sample )
-	{
-		Hat::Index< Dim > e;
-		sample.first *= _res;
-		for( unsigned int d=0 ; d<Dim ; d++ )
-		{
-			e[d] = (int)floor( sample.first[d] );
-			BSpline<>::Evaluate( _bSplineDegree , sample.first[d]-e[d] , _values+d*(_bSplineDegree+1) );
-		}
-
-		auto f = [&]( Hat::Index< Dim > _f )
-		{
-			Hat::Index< Dim > f = _f + e;
-			double scale = _kernelScale;
-			bool inRange = true;
-			for( unsigned int d=0 ; d<Dim ; d++ )
-				if( f[d]>=0 && f[d]<=(int)_res ) scale *= _values[ d * ( _bSplineDegree+1) + _f[d] - _bSplineStart ];
-				else inRange = false;
-			if( inRange ) g[ _scalars.functionIndex( f ) ] += scale * sample.second;
+			// Assuming x \in [0,1], evaluates the supported B-splines
+			static void Evaluate( unsigned int degree , double x , double values[/*degree+1*/] );
 		};
-		_range.process(f);
-	}
 
-	template< unsigned int Dim >
-	template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( unsigned int idx ) */ >
-	void Splatter< Dim >::SplatSamples( unsigned int bSplineDegree , RegularGrid< DataType , Dim > &g , SampleFunctor F , size_t sampleNum , bool unitKernel )
-	{
-		unsigned int res = g.res(0)-1;
-		for( unsigned int d=1 ; d<Dim ; d++ ) if( g.res(d)-1!=res ) ERROR_OUT( "Not a cubical grid" );
-		unsigned int depth = 0;
-		while( (1u<<depth)<res ) depth++;
-		if( res!=(1<<depth) ) ERROR_OUT( "Resolution is not a power of two: " , res );
-
-		Splatter splatter( depth , bSplineDegree , unitKernel );
-		for( unsigned int s=0 ; s<sampleNum ; s++ ) splatter( g() , F(s) );
-	}
-
-	template< unsigned int Dim >
-	template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( unsigned int idx ) */ >
-	void Splatter< Dim >::SplatSamples_parallel( unsigned int bSplineDegree , RegularGrid< DataType , Dim > &g , SampleFunctor F , size_t sampleNum , DataType zeroValue , bool unitKernel )
-	{
-		unsigned int res = g.res(0)-1;
-		for( unsigned int d=1 ; d<Dim ; d++ ) if( g.res(d)-1!=res ) ERROR_OUT( "Not a cubical grid" );
-		unsigned int depth = 0;
-		while( (1u<<depth)<res ) depth++;
-		if( res!=(1<<depth) ) ERROR_OUT( "Resolution is not a power of two: " , res );
-
-		std::vector< RegularGrid< DataType , Dim > > gs( omp_get_max_threads() );
-		std::vector< Splatter > splatters;
-		splatters.reserve( omp_get_max_threads() );
-		for( int t=0 ; t<omp_get_max_threads() ; t++ )
+		// Templated implementation of B-spline weight evaluation
+		template< unsigned int Degree >
+		struct BSpline
 		{
-			gs[t].resize( g.res() );
-			splatters.emplace_back( depth , bSplineDegree , unitKernel );
-		}
+			// Assuming x \in [0,1], evaluates the supported B-splines
+			static void Evaluate( double x , double values[Degree+1] );
+		};
 
-#pragma omp parallel for
-		for( int s=0 ; s<(int)sampleNum ; s++ )
+		// A pure abstract class that supports evaluating the measure, noise, and depth at a point in the unit cube.
+		template< unsigned int Dim > struct Estimator
 		{
-			unsigned int t = omp_get_thread_num();
-			splatters[t]( gs[t]() , F(s) );
-		}
-#pragma omp parallel for
-		for( int i=0 ; i<(int)g.resolution() ; i++ ) for( unsigned int t=0 ; t<gs.size() ; t++ ) g[i] += gs[t][i];
-	}
+			// The measure per unit volume at a given position
+			virtual double measure( Point< double , Dim > , unsigned int thread ) const = 0;
+			// The estimate of noise at a given position
+			virtual double noise( Point< double , Dim > , unsigned int thread ) const = 0;
+			// The measure of the sample's depth at a given position
+			virtual double depth( Point< double , Dim > , unsigned int thread ) const = 0;
+		};
 
-	template< unsigned int Dim >
-	template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( unsigned int idx ) */ >
-	RegularGrid< DataType , Dim > Splatter< Dim >::SplatSamples( unsigned int bSplineDegree , unsigned int depth , SampleFunctor F , size_t sampleNum , DataType zeroValue , bool unitKernel )
-	{
-		RegularGrid< DataType , Dim > g;
+		// A struct describing the distribution of samples
+		template< unsigned int Dim >
+		struct DensityAndNoiseInfo : public VectorSpace< double , DensityAndNoiseInfo< Dim > >
 		{
-			unsigned int res[Dim];
-			for( unsigned int d=0 ; d<Dim ; d++ ) res[d] = (1<<depth) + 1;
-			g.resize( res );
-			for( size_t i=0 ; i<g.resolution() ; i++ ) g[i] = zeroValue;
-		}
-		SplatSamples( bSplineDegree , g , F , sampleNum , unitKernel );
-		return g;
-	}
+			double weightSum;
+			Point< double , Dim > positionSum;
+			SquareMatrix< double , Dim > covarianceSum;
+			DensityAndNoiseInfo( void );
+			DensityAndNoiseInfo( Point< double , Dim > p , double weight );
+			//////////////////////////
+			// Vector space methods //
+			void Add  ( const DensityAndNoiseInfo &ni );
+			void Scale( double s );
+			//////////////////////////
 
-	/////////////////////
-	// SingleEstimator //
-	/////////////////////
-	template< unsigned int Dim , unsigned int CoDim >
-	SingleEstimator< Dim , CoDim >::SingleEstimator( unsigned int depth ) : _depth(depth)
-	{
-		unsigned int res[Dim];
-		for( unsigned int dd=0 ; dd<Dim ; dd++ ) res[dd] = (1<<depth) + 1;
-		RegularGrid< DensityAndNoiseInfo< Dim > , Dim >::resize( res );
-	}
+			double noise( unsigned int coDim ) const;
+			double measure( void ) const;
+		};
 
-	template< unsigned int Dim , unsigned int CoDim >
-	unsigned int SingleEstimator< Dim , CoDim >::depth( void ) const { return _depth; }
-
-	template< unsigned int Dim , unsigned int CoDim >
-	DensityAndNoiseInfo< Dim > SingleEstimator< Dim , CoDim >::operator()( Point< double , Dim > p ) const { return RegularGrid< DensityAndNoiseInfo< Dim >  , Dim >::operator()( p*(1<<_depth) ); }
-
-	template< unsigned int Dim , unsigned int CoDim >
-	double SingleEstimator< Dim , CoDim >::measure( Point< double , Dim > p ) const { return this->operator()( p ).measure(); }
-
-	template< unsigned int Dim , unsigned int CoDim >
-	double SingleEstimator< Dim , CoDim >::noise( Point< double , Dim > p ) const { return this->operator()( p ).noise( CoDim ); }
-
-	template< unsigned int Dim , unsigned int CoDim >
-	double SingleEstimator< Dim , CoDim >::depth( Point< double , Dim > p ) const { return _depth; }
-
-	template< unsigned int Dim , unsigned int CoDim >
-	double SingleEstimator< Dim , CoDim >::samplesPerCell( Point< double , Dim > p ) const { return this->operator()( p ).weightSum / ( 1<<(_depth*(Dim-CoDim) ) ); }
-
-	template< unsigned int Dim , unsigned int CoDim >
-	template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
-	SingleEstimator< Dim , CoDim > SingleEstimator< Dim , CoDim >::Get( unsigned int kernelRadius , unsigned int depth , SampleFunctor F , size_t sampleNum )
-	{
-		SingleEstimator estimator( depth );
-		Set( estimator , kernelRadius , F , sampleNum );
-		return estimator;
-	}
-
-	template< unsigned int Dim , unsigned int CoDim >
-	template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
-	void SingleEstimator< Dim , CoDim >::Set( SingleEstimator< Dim , CoDim > &estimator , unsigned int kernelRadius , SampleFunctor F , size_t sampleNum )
-	{
-		double scale;
+		// A struct for splatting a sample into a grid
+		template< unsigned int Dim >
+		struct Splatter
 		{
-			unsigned int bSplineDegree = 2*kernelRadius + 1;
-			double *_values = new double[bSplineDegree+1];
-			BSpline<>::Evaluate( bSplineDegree , 0.5 , _values );
-			scale = pow( 1./_values[kernelRadius+1] , CoDim );
-			delete[] _values;
-		}
-		auto _F = [&]( unsigned int idx ){ return std::make_pair( F(idx) , DensityAndNoiseInfo< Dim >( F(idx) , scale / pow( pow( 0.5 , estimator.depth() ) , Dim - CoDim ) ) ); };
-		Splatter< Dim >::template SplatSamples_parallel< DensityAndNoiseInfo< Dim > >( 2*kernelRadius+1 , estimator , _F , sampleNum , DensityAndNoiseInfo< Dim >() , false );
-	}
+			Splatter( unsigned int depth , unsigned int bSplineDegree , bool unitKernel );
+			~Splatter( void );
 
-	////////////////////
-	// MultiEstimator //
-	////////////////////
-	template< unsigned int Dim , unsigned int CoDim >
-	MultiEstimator< Dim , CoDim >::MultiEstimator( unsigned int depth , double samplesPerCell ) : _samplesPerCell(samplesPerCell)
-	{
-		_info.reserve( depth+1 );
-		for( unsigned int d=0 ; d<=depth ; d++ ) _info.emplace_back( d );
-	}
+			template< typename DataType >
+			void operator()( DataType *g , std::pair< Point< double , Dim > , DataType > sample );
 
-	template< unsigned int Dim , unsigned int CoDim >
-	double MultiEstimator< Dim , CoDim >::depth( Point< double , Dim > p ) const
-	{
-		// Find the finest depth at which the number of samples per node exceeds _samplesPerCell
-		unsigned int d1 = (unsigned int)_info.size()-1 , d2 = (unsigned int)_info.size();
-		while( d2 && _info[d1].samplesPerCell(p)<_samplesPerCell ) d1-- , d2--;
-		if( d2==0 || d2==_info.size() ) // Extremal case
+			// Splats the values into the corners of the cell containg the sample using the B-spline weights
+			template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( size_t idx ) */ >
+			static RegularGrid< Dim , DataType > SplatSamples( unsigned int bSplineDegree , unsigned int depth , SampleFunctor F , size_t sampleNum , DataType zeroValue , bool unitKernel );
+
+			// Splats the values into the corners of the cell containg the sample using multi-linear weights
+			template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( size_t idx ) */ >
+			static void SplatSamples( unsigned int bSplineDegree , RegularGrid< Dim , DataType > &g , SampleFunctor F , size_t sampleNum , bool unitKernel );
+
+			// Splats the values into the corners of the cell containg the sample using multi-linear weights
+			template< typename DataType , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( size_t idx ) */ >
+			static void SplatSamples_parallel( unsigned int bSplineDegree , RegularGrid< Dim , DataType > &g , SampleFunctor F , size_t sampleNum , DataType zeroValue , bool unitKernel );
+
+		protected:
+			double *_values;
+			Hat::ScalarFunctions< Dim > _scalars;
+			int _bSplineStart;
+			unsigned int _bSplineDegree , _res;
+			Hat::Range< Dim > _range;
+			double _kernelScale;
+		};
+
+		template< unsigned int Dim , typename DataType >
+		struct TreeSplatter
 		{
-			unsigned int d;
-			if     ( d2==0 ) d=0;
-			else if( d2==_info.size() ) d = (unsigned int)_info.size()-1;
-			double samplesPerCell = _info[d].samplesPerCell(p);
-			// Generically the assumption is that increase the depth by should decrease the number of samples per cell by a factor of 2^{Dim-CoDim}
-			// Solve for the depth such that:
-			//		_samplesPerCell = samplesPerCell / 2^{depth-d}
-			//		2^{depth-d} = samplesPerCell/_samplesPerCell
-			//		depth - d = log( samplesPerCell/_samplesPerCell ) / log(2)
-			//		depth = log( samplesPerCell/_samplesPerCell ) / log(2) + d
-			return d + log( samplesPerCell/_samplesPerCell ) / log(2.);
-		}
-		else // Interior case
+			using Node = RegularTreeNode< Dim , DataType , unsigned short >;
+
+			TreeSplatter( unsigned int maxDepth );
+			TreeSplatter( BinaryStream &stream );
+
+			template< unsigned int KernelRadius , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( size_t idx ) > */ , typename DepthWeightFunctor /* = std::function< double > ( unsigned int depth ) > */ >
+			void addSamples( SampleFunctor && Sample , const OrderedSampler< Dim > &orderedSampler , DepthWeightFunctor && DepthWeight , bool mergeSamples );
+
+			template< unsigned int KernelRadius , typename SampleFunctor /* = std::function< std::pair< Point< double , Dim > , DataType > ( size_t idx ) > */ , typename SampleDepthFunctor /* = std::function< double ( size_t idx ) > */ , typename DepthWeightFunctor /* = std::function< double > ( unsigned int depth ) > */ >
+			void addSamples( SampleFunctor && Sample , const OrderedSampler< Dim > &orderedSampler , SampleDepthFunctor && SampleDepth , DepthWeightFunctor && DepthWeight , bool mergeSamples );
+
+			// Returns the density and noise information at the specified point and the specified depth
+			DataType operator()( Point< double , Dim > p , unsigned int depth , unsigned int thread ) const;
+
+			// Returns the density and noise information at the specified point, summed across all depths
+			DataType operator()( Point< double , Dim > p , unsigned int thread ) const;
+
+			// Processes the data in the tree
+			template< typename DataFunctor /* = std::function< void ( unsigned int , Hat::Index< Dim > , const DataType & ) > */ >
+			void process( DataFunctor && F ) const;
+
+			// Processes the data in the tree
+			template< typename DataFunctor /* = std::function< void ( unsigned int , Hat::Index< Dim > , DataType & ) > */ >
+			void process( DataFunctor && F );
+
+			// Write the data in the tree to a stream
+			void write( BinaryStream &stream , bool serialize ) const;
+
+			// Read the data in the tree to a stream
+			void read( BinaryStream &stream );
+
+		protected:
+			template< unsigned int KernelRadius >
+			using NeighborKey = typename Node::template NeighborKey< ParameterPack::IsotropicUIntPack< Dim , KernelRadius > , ParameterPack::IsotropicUIntPack< Dim , KernelRadius+1 > >;
+			template< unsigned int KernelRadius >
+			using ConstNeighborKey = typename Node::template ConstNeighborKey< ParameterPack::IsotropicUIntPack< Dim , KernelRadius > , ParameterPack::IsotropicUIntPack< Dim , KernelRadius+1 > >;
+
+			template< unsigned int KernelRadius >
+			struct _InsertionData
+			{
+				static const unsigned int BSplineDegree = 2*KernelRadius + 1;
+				NeighborKey< KernelRadius > nKey;
+				double bSplineValues[ Dim ][ BSplineDegree+1 ];
+				_InsertionData( unsigned int maxDepth ){ nKey.set( maxDepth+1 ); }
+			};
+
+			Node _root , *_spaceRoot;
+			unsigned int _maxDepth;
+			std::vector< ConstNeighborKey< 0 > > _nKeys;
+
+			template< unsigned int KernelRadius , typename DepthWeightFunctor /* = std::function< double ( size_t idx ) > */ >
+			void _addSample( _InsertionData< KernelRadius > &iData , Point< double , Dim > p , DataType data , DepthWeightFunctor && F );
+
+			template< unsigned int KernelRadius , typename DepthWeightFunctor /* = std::function< double ( size_t idx ) > */ >
+			void _addSample( _InsertionData< KernelRadius > &iData , double depth , Point< double , Dim > p , DataType data , DepthWeightFunctor && F );
+
+			template< unsigned int KernelRadius >
+			void _addSample( _InsertionData< KernelRadius > &iData , unsigned int depth , Point< double , Dim > p , DataType data );
+
+			template< unsigned int KernelRadius , typename PositionFunctor /* = std::function< Point< double , Dim > ( size_t idx ) > */  , typename DataFunctor /* = std::function< Data ( size_t idx ) > */ , typename DepthWeightFunctor /* = std::function< double ( size_t idx ) > */ >
+			void _addSamples( NeighborKey< KernelRadius > &nKey , size_t sz , PositionFunctor && PositionF , DataFunctor && DataF , DepthWeightFunctor && DepthF );
+		};
+
+		// A struct for splatting a sample from a (Dim-CoDim)-dimensional manifold, living in Dim-dimensional Euclidean space into a grid
+		template< unsigned int Dim , unsigned int CoDim >
+		struct SingleEstimator : public RegularGrid< Dim , DensityAndNoiseInfo< Dim > > , Estimator< Dim >
 		{
-			// Here we assume that the change in the samples per cell is simply samplesPerCell[d2]/samplesPerCell[d1]
-			// Solve for the depth such that:
-			//		_samplesPerCell = samplesPerCell[d1] * pow( samplesPerCell[d2]/samplesPerCell[d1] , d-d1 )
-			//		pow( samplesPerCell[d2]/samplesPerCell[d1] , d-d1 ) = _samplesPerCell / samplesPerCell[d1]
-			//		d-d1 = log( _samplesPerCell / samplesPerCell[d1] ) / log( samplesPerCell[d2]/samplesPerCell[d1] )
-			//		d = log( _samplesPerCell / samplesPerCell[d1] ) / log( samplesPerCell[d2]/samplesPerCell[d1] ) + d1
-			double samplesPerCell1 = _info[d1].samplesPerCell(p) , samplesPerCell2 = _info[d2].samplesPerCell(p);
-			if( !samplesPerCell2 ) return d1;
-			else return d1 + log( _samplesPerCell/samplesPerCell1 ) / log( samplesPerCell2/samplesPerCell1 );
-		}
-	}
+			SingleEstimator( unsigned int depth );
+			unsigned int depth( void ) const;
+			double        measure( Point< double , Dim > p , unsigned int thread ) const;
+			double          noise( Point< double , Dim > p , unsigned int thread ) const;
+			double          depth( Point< double , Dim > p , unsigned int thread ) const;
+			DensityAndNoiseInfo< Dim > operator()( Point< double , Dim > p , unsigned int thread ) const;
+			double samplesPerCell( Point< double , Dim > p , unsigned int thread ) const;
 
-	template< unsigned int Dim , unsigned int CoDim >
-	DensityAndNoiseInfo< Dim > MultiEstimator< Dim , CoDim >::operator()( Point< double , Dim > p ) const
-	{
-		double depth = this->depth( p );
-		if( depth>=_info.size()-1 ) return _info.back()( p );
-		else if( depth<0 ) return _info[0](p);
-		else
+			template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( size_t idx ) */ >
+			static SingleEstimator Get( unsigned int kernelRadius , unsigned int depth , SampleFunctor F , size_t sampleNum );
+
+			template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( size_t idx ) */ >
+			static void Set( SingleEstimator &estimator , unsigned int kernelRadius , SampleFunctor F , size_t sampleNum );
+
+		protected:
+			unsigned int _depth;
+		};
+
+		template< unsigned int Dim , unsigned int CoDim >
+		struct MultiEstimator : public Estimator< Dim >
 		{
-			int d1 = (int)floor(depth) , d2 = (int)floor(depth)+1;
-			double d = depth-d1;
-			return _info[d1](p) * (1.-d) + _info[d2](p) * d;
-		}
-	}
+			MultiEstimator( unsigned int depth , double samplesPerCell );
+			DensityAndNoiseInfo< Dim > operator()( Point< double , Dim > p , unsigned int thread ) const;
+			double   depth( Point< double , Dim > p , unsigned int thread ) const;
+			double measure( Point< double , Dim > p , unsigned int thread ) const;
+			double   noise( Point< double , Dim > p , unsigned int thread ) const;
+			double samplesPerCell( Point< double , Dim > p , unsigned int thread ) const;
 
-	template< unsigned int Dim , unsigned int CoDim >
-	double MultiEstimator< Dim , CoDim >::       measure( Point< double , Dim > p ) const { return this->operator()( p ).measure(); }
+			template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( size_t idx ) */ >
+			static MultiEstimator Get( unsigned int kernelRadius , unsigned int depth , SampleFunctor F , size_t sampleNum , double samplesPerCell=pow(2.,Dim-CoDim) );
+		protected:
+			std::vector< SingleEstimator< Dim , CoDim > > _info;
+			double _samplesPerCell;
+		};
 
-	template< unsigned int Dim , unsigned int CoDim >
-	double MultiEstimator< Dim , CoDim >::         noise( Point< double , Dim > p ) const { return this->operator()( p ).noise( CoDim ); }
+		template< unsigned int Dim , unsigned int CoDim >
+		struct TreeEstimator : public Estimator< Dim > , TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >
+		{
+			using Node = typename TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >::Node;
 
-#ifdef NEW_GRID_SAMPLES
-	template< unsigned int Dim , unsigned int CoDim >
-	double MultiEstimator< Dim , CoDim >::samplesPerCell( Point< double , Dim > p ) const
-	{
-		// If at depth d, the cell has _samplesPerCell samples per cell then,
-		// assuming that the number samples per cell decreases by a factor of 2^{Dim-CoDim} per level,
-		// the number of samples per cell at depth _depth is _samplesPerCell * pow( 0.5 , (Dim-CoDim) * (_depth-d)
-		return _samplesPerCell * pow( 0.5 , (Dim-CoDim) * ( (int)_info.size()-1 - depth(p) ) );
-	}
-#else // !NEW_GRID_SAMPLES
-	template< unsigned int Dim , unsigned int CoDim >
-	template< bool Finest >
-	double MultiEstimator< Dim , CoDim >::samplesPerCell( Point< double , Dim > p ) const
-	{
-		if constexpr( Finest ) return _info.back().samplesPerCell(p);
-		else return this->operator()( p ).weightSum / ( 1<<((_info.size()-1)*(Dim-CoDim) ) );
-	}
-#endif // NEW_GRID_SAMPLES
+			TreeEstimator( void );
+			TreeEstimator( BinaryStream &stream );
 
-	template< unsigned int Dim , unsigned int CoDim >
-	template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
-	MultiEstimator< Dim , CoDim > MultiEstimator< Dim , CoDim >::Get( unsigned int kernelRadius , unsigned int depth , SampleFunctor F , size_t sampleNum , double samplesPerCell )
-	{
-		MultiEstimator estimator( depth , samplesPerCell );
-		for( unsigned int d=0 ; d<=depth ; d++ ) SingleEstimator< Dim , CoDim >::Set( estimator._info[d] , kernelRadius , F , sampleNum );
-		return estimator;
+			template< typename SampleFunctor /* = std::function< Point< double , Dim > > ( size_t idx ) */ >
+			TreeEstimator( unsigned int kernelRadius , unsigned int maxDepth , SampleFunctor && F , const OrderedSampler< Dim > &orderedSampler , bool mergeSamples , double samplesPerCell=pow(2.,Dim-CoDim) );
+
+			// Returns the density and noise information at the specified point
+			DensityAndNoiseInfo< Dim > operator()( Point< double , Dim > p , unsigned int thread ) const;
+
+			// The measure per unit volume at a given position
+			double measure( Point< double , Dim > , unsigned int thread ) const;
+			// The estimate of noise at a given position
+			double noise( Point< double , Dim > , unsigned int thread ) const;
+			// The measure of the sample's depth at a given position
+			double depth( Point< double , Dim > , unsigned int thread ) const;
+
+			// The estimate of the number of samples per cell at the point p, measured with respect to a cell at the finest depth
+			double samplesPerCell( Point< double , Dim > p , unsigned int thread ) const;
+
+			// Write the data in the tree to a stream
+			void write( BinaryStream &stream , bool serialize ) const;
+
+			// Read the data in the tree to a stream
+			void read( BinaryStream &stream );
+
+		protected:
+			template< unsigned int KernelRadius >
+			using NeighborKey = typename Node::template NeighborKey< ParameterPack::IsotropicUIntPack< Dim , KernelRadius > , ParameterPack::IsotropicUIntPack< Dim , KernelRadius+1 > >;
+			template< unsigned int KernelRadius >
+			using ConstNeighborKey = typename Node::template ConstNeighborKey< ParameterPack::IsotropicUIntPack< Dim , KernelRadius > , ParameterPack::IsotropicUIntPack< Dim , KernelRadius+1 > >;
+
+			double _targetSamplesPerCell;
+
+			using TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >::_maxDepth;
+			using TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >::_nKeys;
+			using TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >::_spaceRoot;
+
+			DensityAndNoiseInfo< Dim > _densityAndNoiseInfo( ConstNeighborKey< 0 > &nKey , unsigned int depth , Point< double , Dim > p ) const;
+			double _samplesPerCell( ConstNeighborKey< 0 > &nKey , unsigned int depth , Point< double , Dim > p ) const;
+			double _depth( ConstNeighborKey< 0 > &nKey , unsigned int _maxDepth , Point< double , Dim > p ) const;
+		};
+#include "GridSamples.inl"
 	}
 }
 

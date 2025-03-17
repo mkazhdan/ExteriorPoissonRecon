@@ -38,15 +38,17 @@ DAMAGE.
 #include "Misha/RegularGrid.h"
 #include "Include/Hat.h"
 
+using namespace MishaK;
+
 static const unsigned int Dim = 3;
 static const unsigned int CoDim = 2;
 
-Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
-Misha::CmdLineParameter< unsigned int > AngularResolution( "res" , 12 );
-Misha::CmdLineParameter< double > TubularRadius( "radius" , 1./64 );
-Misha::CmdLineReadable Verbose( "verbose" );
+CmdLineParameter< std::string > In( "in" ) , Out( "out" );
+CmdLineParameter< unsigned int > AngularResolution( "res" , 12 );
+CmdLineParameter< double > TubularRadius( "radius" , 1./64 );
+CmdLineReadable Verbose( "verbose" );
 
-Misha::CmdLineReadable* params[] =
+CmdLineReadable* params[] =
 {
 	&In ,
 	&Out ,
@@ -74,7 +76,7 @@ int main( int argc , char* argv[] )
 {
 	Miscellany::Timer timer;
 
-	Misha::CmdLineParse( argc-1 , argv+1 , params );
+	CmdLineParse( argc-1 , argv+1 , params );
 	if( !In.set )
 	{
 		ShowUsage( argv[0] );
@@ -93,8 +95,7 @@ int main( int argc , char* argv[] )
 		std::vector< std::vector< int > > edges;
 		std::vector< Vertex > vertices;
 
-		int file_type;
-		PLY::ReadPolygons< Factory >( In.value , factory , vertices , edges , NULL , file_type );
+		int file_type = PLY::ReadPolygons< Factory >( In.value , factory , vertices , edges , NULL );
 
 		levelSet.vertices.resize( vertices.size() );
 		for( unsigned int c=0 ; c<CoDim ; c++ ) frame[c].resize( vertices.size() );

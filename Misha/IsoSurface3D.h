@@ -31,55 +31,59 @@ DAMAGE.
 #include <unordered_map>
 #include <algorithm>
 #include <functional>
+#include <mutex>
 #include "Geometry.h"
 #include "MarchingCubes.h"
 #include "RegularGrid.h"
 #include "Array.h"
 #include "Polynomial.h"
+#include "MultiThreading.h"
 
-
-template< typename Real , typename Index=int >
-struct IsoSurface3D
+namespace MishaK
 {
-	enum
+	template< typename Real , typename Index=int >
+	struct IsoSurface3D
 	{
-		INTERPOLATE_LINEAR ,
-		INTERPOLATE_QUADRATIC ,
-		INTERPOLATE_CUBIC ,
-		INTERPOLATE_CATMULL_ROM ,
-		INTERPOLATE_COUNT
+		enum
+		{
+			INTERPOLATE_LINEAR ,
+			INTERPOLATE_QUADRATIC ,
+			INTERPOLATE_CUBIC ,
+			INTERPOLATE_CATMULL_ROM ,
+			INTERPOLATE_COUNT
+		};
+		static const std::string InterpolationNames[];
+
+		static void Extract( const unsigned int res[3] , const Point< Real , 3 > bBox[2] , std::function< Real ( Point< Real , 3 > ) > vFunction , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
+		static void Extract( const unsigned int res[3] , const Point< Real , 3 > bBox[2] , std::function< Real ( Point< Real , 3 > ) > vFunction , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold );
+		static void Extract( const unsigned int res[3] , ConstPointer( Real ) values , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
+		static void Extract( const unsigned int res[3] , ConstPointer( Real ) values , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold );
+
+		static void Extract( const RegularGrid< 3 , Real > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
+		static void Extract( const RegularGrid< 3 , Real > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold );
+
+	protected:
+		struct _Vertex
+		{
+			int dir , idx[3];
+			Point3D< Real > p;
+			_Vertex( Point3D< Real > _p , int _dir , int x , int y , int z ) : p(_p) , dir(_dir) { idx[0] = x , idx[1] = y , idx[2] = z; }
+			static bool CoFacial( const _Vertex &t1 , const _Vertex &t2 );
+		};
+		static void _Extract( const RegularGrid< 3 , Real > &voxelGrid , Real isoValue , std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
+		static void _Extract( const unsigned int res[3] , ConstPointer( Real ) values , Real isoValue , std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
+
+		static Real     _LinearInterpolant( Real x1 , Real x2 , Real isoValue );
+		static Real  _QuadraticInterpolant( Real x0 , Real x1 , Real x2 , Real x3 , Real isoValue );
+		static Real      _CubicInterpolant( Real x0 , Real x1 , Real x2 , Real x3 , Real isoValue );
+		static Real _CatmullRomInterpolant( Real x0 , Real x1 , Real x2 , Real x3 , Real isoValue );
+
+		static void _SetFlags( int resX , int resY , ConstPointer( Real ) values , Real isoValue , Pointer( unsigned char ) flags );
+		static void _SetZVertices( int resX , int resY , int z , ConstPointer( Real ) values0 , ConstPointer( Real ) values1 , ConstPointer( Real ) values2 , ConstPointer( Real ) values3 , ConstPointer( unsigned char ) flags1 , ConstPointer( unsigned char ) flags2 , Real isoValue , int interpolationType , std::unordered_map< long long , Index >& isoVertexMap , std::vector< _Vertex >& vertices );
+		static void _SetXYVertices( int resX , int resY , int z , ConstPointer( Real ) values , ConstPointer( unsigned char ) flags , Real isoValue , int interpolationType , std::unordered_map< long long , Index >& xIsoVertexMap , std::unordered_map< long long , Index >& yIsoVertexMap , std::vector< _Vertex >& vertices );
+		static void _SetPolygons( int resX , int resY , int z , ConstPointer( Real ) values1 , ConstPointer( Real ) values2 , Real isoValue , bool fullCaseTable , const std::unordered_map< long long , Index >& xIsoVertexMap1 , const std::unordered_map< long long , Index >& xIsoVertexMap2 , const std::unordered_map< long long , Index >& yIsoVertexMap1 , const std::unordered_map< long long , Index >& yIsoVertexMap2 , const std::unordered_map< long long , Index >& zIsoVertexMap , const std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons );
 	};
-	static const std::string InterpolationNames[];
-
-	static void Extract( const unsigned int res[3] , const Point< Real , 3 > bBox[2] , std::function< Real ( Point< Real , 3 > ) > vFunction , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
-	static void Extract( const unsigned int res[3] , const Point< Real , 3 > bBox[2] , std::function< Real ( Point< Real , 3 > ) > vFunction , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold );
-	static void Extract( const unsigned int res[3] , ConstPointer( Real ) values , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
-	static void Extract( const unsigned int res[3] , ConstPointer( Real ) values , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold );
-
-	static void Extract( const RegularGrid< Real , 3 > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
-	static void Extract( const RegularGrid< Real , 3 > &voxelGrid , Real isoValue , std::vector< Point3D< Real > >& vertices , std::vector< SimplexIndex< 2 , Index > >& triangles , bool fullCaseTable , int interpolationType , bool manifold );
-
-protected:
-	struct _Vertex
-	{
-		int dir , idx[3];
-		Point3D< Real > p;
-		_Vertex( Point3D< Real > _p , int _dir , int x , int y , int z ) : p(_p) , dir(_dir) { idx[0] = x , idx[1] = y , idx[2] = z; }
-		static bool CoFacial( const _Vertex &t1 , const _Vertex &t2 );
-	};
-	static void _Extract( const RegularGrid< Real , 3 > &voxelGrid , Real isoValue , std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
-	static void _Extract( const unsigned int res[3] , ConstPointer( Real ) values , Real isoValue , std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons , bool fullCaseTable , int interpolationType );
-
-	static Real     _LinearInterpolant( Real x1 , Real x2 , Real isoValue );
-	static Real  _QuadraticInterpolant( Real x0 , Real x1 , Real x2 , Real x3 , Real isoValue );
-	static Real      _CubicInterpolant( Real x0 , Real x1 , Real x2 , Real x3 , Real isoValue );
-	static Real _CatmullRomInterpolant( Real x0 , Real x1 , Real x2 , Real x3 , Real isoValue );
-
-	static void _SetFlags( int resX , int resY , ConstPointer( Real ) values , Real isoValue , Pointer( unsigned char ) flags );
-	static void _SetZVertices( int resX , int resY , int z , ConstPointer( Real ) values0 , ConstPointer( Real ) values1 , ConstPointer( Real ) values2 , ConstPointer( Real ) values3 , ConstPointer( unsigned char ) flags1 , ConstPointer( unsigned char ) flags2 , Real isoValue , int interpolationType , std::unordered_map< long long , Index >& isoVertexMap , std::vector< _Vertex >& vertices );
-	static void _SetXYVertices( int resX , int resY , int z , ConstPointer( Real ) values , ConstPointer( unsigned char ) flags , Real isoValue , int interpolationType , std::unordered_map< long long , Index >& xIsoVertexMap , std::unordered_map< long long , Index >& yIsoVertexMap , std::vector< _Vertex >& vertices );
-	static void _SetPolygons( int resX , int resY , int z , ConstPointer( Real ) values1 , ConstPointer( Real ) values2 , Real isoValue , bool fullCaseTable , const std::unordered_map< long long , Index >& xIsoVertexMap1 , const std::unordered_map< long long , Index >& xIsoVertexMap2 , const std::unordered_map< long long , Index >& yIsoVertexMap1 , const std::unordered_map< long long , Index >& yIsoVertexMap2 , const std::unordered_map< long long , Index >& zIsoVertexMap , const std::vector< _Vertex >& vertices , std::vector< std::vector< Index > >& polygons );
-};
 
 #include "IsoSurface3D.inl"
+}
 #endif // ISO_SURFACE_3D_INCLUDED

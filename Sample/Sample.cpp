@@ -28,9 +28,6 @@ DAMAGE.
 
 #include <stdio.h>
 #include <stdlib.h>
-#if !defined( __clang__ )
-#include <omp.h>
-#endif // !__clang__
 #include <vector>
 #include <unordered_map>
 
@@ -41,13 +38,15 @@ DAMAGE.
 #include "Misha/PlyVertexData.h"
 #include "Include/Samples.h"
 
-Misha::CmdLineParameter< std::string > Out( "out" );
-Misha::CmdLineParameter< std::string > SampleType( "type" );
-Misha::CmdLineParameter< unsigned int > SampleResolution( "res" , 1024 );
-Misha::CmdLineParameter< double > AngularNoise( "aNoise" , 0. ) , PositionalNoise( "pNoise" , 0. ) , SpotNoise( "sNoise" , 0. );
-Misha::CmdLineReadable RegularSample( "regular" );
+using namespace MishaK;
 
-Misha::CmdLineReadable* params[] =
+CmdLineParameter< std::string > Out( "out" );
+CmdLineParameter< std::string > SampleType( "type" );
+CmdLineParameter< unsigned int > SampleResolution( "res" , 1024 );
+CmdLineParameter< double > AngularNoise( "aNoise" , 0. ) , PositionalNoise( "pNoise" , 0. ) , SpotNoise( "sNoise" , 0. );
+CmdLineReadable RegularSample( "regular" );
+
+CmdLineReadable* params[] =
 {
 	&SampleType ,
 	&SampleResolution ,
@@ -222,7 +221,7 @@ void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetric
 
 int main( int argc , char* argv[] )
 {
-	Misha::CmdLineParse( argc-1 , argv+1 , params );
+	CmdLineParse( argc-1 , argv+1 , params );
 	if( !SampleType.set )
 	{
 		ShowUsage( argv[0] );

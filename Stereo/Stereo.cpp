@@ -1,3 +1,31 @@
+/*
+Copyright (c) 2025, Michael Kazhdan, Sing-Chun Lee, Marc Alexa, and Maximilian Kohlbrenner
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of
+conditions and the following disclaimer. Redistributions in binary form must reproduce
+the above copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the distribution. 
+
+Neither the name of the Johns Hopkins University nor the names of its contributors
+may be used to endorse or promote products derived from this software without specific
+prior written permission. 
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES 
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -11,17 +39,19 @@
 #include "Misha/RegularGrid.h"
 #include "Include/Hat.h"
 
+using namespace MishaK;
+
 static const unsigned int Dim = 4;
 static const unsigned int CoDim = 2;
 
 
 const double DefaultStereographic[] = { 0 , 0 , 0 , 1 };
 
-Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
-Misha::CmdLineParameterArray< double , Dim > Stereographic( "stereo" , DefaultStereographic );
-Misha::CmdLineReadable Normalize( "normalize" ) , Verbose( "verbose" );
+CmdLineParameter< std::string > In( "in" ) , Out( "out" );
+CmdLineParameterArray< double , Dim > Stereographic( "stereo" , DefaultStereographic );
+CmdLineReadable Normalize( "normalize" ) , Verbose( "verbose" );
 
-Misha::CmdLineReadable* params[] =
+CmdLineReadable* params[] =
 {
 	&In ,
 	&Out ,
@@ -49,7 +79,7 @@ int main( int argc , char* argv[] )
 {
 	Miscellany::Timer timer;
 
-	Misha::CmdLineParse( argc-1 , argv+1 , params );
+	CmdLineParse( argc-1 , argv+1 , params );
 	if( !In.set )
 	{
 		ShowUsage( argv[0] );
@@ -63,7 +93,7 @@ int main( int argc , char* argv[] )
 		using Vertex = Factory::VertexType;
 		Factory factory;
 		bool *propertiesFlag = NULL;
-		PLY::ReadTriangles< Factory , unsigned int >( In.value , factory , levelSet.vertices , levelSet.simplexIndices , propertiesFlag , file_type );
+		file_type = PLY::ReadTriangles< Factory , unsigned int >( In.value , factory , levelSet.vertices , levelSet.simplexIndices , propertiesFlag );
 	}
 
 	if( Normalize.set )

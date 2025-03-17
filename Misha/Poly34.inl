@@ -6,6 +6,8 @@
 //
 #include <math.h>
 
+#define MARC_ALEXA_FIX
+
 namespace Poly34
 {
 	//=============================================================================
@@ -42,12 +44,21 @@ namespace Poly34
 		else              return 0.;
 	}
 
+	// x - array of size 1
+	// return 1: 1 real root x
+	// solve equation x + a = 0
+	inline unsigned int SolveP1( double *x , double a , double eps )
+	{
+		x[0] = -a;
+		return 1;
+	}
+
 
 	// x - array of size 2
 	// return 2: 2 real roots x[0], x[1]
 	// return 0: pair of complex roots: x[0]켲*x[1]
 	// solve equation x^2 + a*x + b = 0
-	inline int SolveP2( double *x , double a , double b )
+	inline unsigned int SolveP2( double *x , double a , double b , double eps )
 	{
 		double D = 0.25*a*a - b;
 		if( D>=0 )
@@ -67,9 +78,9 @@ namespace Poly34
 	//         2 real roots: x[0], x[1],          return 2
 	//         1 real root : x[0], x[1] � i*x[2], return 1
 	// solve cubic equation x^3 + a*x^2 + b*x + c = 0
-	inline int SolveP3( double *x , double a , double b , double c )
+	inline unsigned int SolveP3( double *x , double a , double b , double c , double eps )
 	{
-		const double eps = 1e-14;
+//		const double eps = 1e-14;
 		const double TwoPi = 6.28318530717958648;
 
 		double a2 = a*a;
@@ -79,11 +90,20 @@ namespace Poly34
 		double r2 = r*r;
 		double q3 = q*q*q;
 		double A , B;
+#ifdef MARC_ALEXA_FIX
+		// Computation should be stable in the "if" part of the branch without the epsilon,
+		// but this ensures that "sqrt(r2-q3)" in the "else" branch does not lead to a NaN.
+		if (r2 <= q3) {//<<-- FIXED!
+#else // !MARC_ALEXA_FIX
 		if (r2 <= (q3 + eps)) {//<<-- FIXED!
+#endif // MARC_ALEXA_FIX
 			double t=r/sqrt(q3);
 			if( t<-1) t=-1;
 			if( t> 1) t= 1;
 			t=acos(t);
+#ifdef MARC_ALEXA_FIX
+#pragma message( "[WARNING] Does this require a safeguard?" )
+#endif // MARC_ALEXA_FIX
 			a/=3; q=-2*sqrt(q);
 			x[0]=q*cos(t/3)-a;
 			x[1]=q*cos((t+TwoPi)/3)-a;
@@ -119,7 +139,7 @@ namespace Poly34
 	}
 
 	// solve equation x^4 + b*x^2 + d = 0
-	inline int SolveP4Bi( double *x , double b , double d )
+	inline unsigned int SolveP4Bi( double *x , double b , double d )
 	{
 		double D = b*b-4*d;
 		if( D>=0 ) 
@@ -182,13 +202,13 @@ namespace Poly34
 	}
 
 	// solve equation x^4 + b*x^2 + c*x + d
-	inline int SolveP4De( double *x , double b , double c , double d )
+	inline unsigned int SolveP4De( double *x , double b , double c , double d , double eps )
 	{
 		//if( c==0 ) return SolveP4Bi(x,b,d); // After that, c!=0
-		if( fabs(c)<1e-14*(fabs(b)+fabs(d)) ) return SolveP4Bi(x,b,d); // After that, c!=0
+		if( fabs(c)<eps*(fabs(b)+fabs(d)) ) return SolveP4Bi(x,b,d); // After that, c!=0
 
-		int res3 = SolveP3( x, 2*b, b*b-4*d, -c*c);	// solve resolvent
-													// by Viet theorem:  x1*x2*x3=-c*c not equals to 0, so x1!=0, x2!=0, x3!=0
+		int res3 = SolveP3( x , 2*b , b*b-4*d , -c*c , eps );	// solve resolvent
+																// by Viet theorem:  x1*x2*x3=-c*c not equals to 0, so x1!=0, x2!=0, x3!=0
 		if( res3>1 )	// 3 real roots, 
 		{				
 			dblSort3(x[0], x[1], x[2]);	// sort roots to x[0] <= x[1] <= x[2]
@@ -272,12 +292,12 @@ namespace Poly34
 	// return 4: 4 real roots x[0], x[1], x[2], x[3], possible multiple roots
 	// return 2: 2 real roots x[0], x[1] and complex x[2]켲*x[3], 
 	// return 0: two pair of complex roots: x[0]켲*x[1],  x[2]켲*x[3], 
-	inline int SolveP4( double * x , double a , double b , double c , double d ) {	// solve equation x^4 + a*x^3 + b*x^2 + c*x + d by Dekart-Euler method
+	inline unsigned int SolveP4( double * x , double a , double b , double c , double d , double eps ) {	// solve equation x^4 + a*x^3 + b*x^2 + c*x + d by Dekart-Euler method
 																					// move to a=0:
 		double d1 = d + 0.25*a*( 0.25*b*a - 3./64*a*a*a - c);
 		double c1 = c + 0.5*a*(0.25*a*a - b);
 		double b1 = b - 0.375*a*a;
-		int res = SolveP4De( x, b1, c1, d1);
+		int res = SolveP4De( x , b1 , c1 , d1 , eps );
 		if( res==4) { x[0]-= a/4; x[1]-= a/4; x[2]-= a/4; x[3]-= a/4; }
 		else if (res==2) { x[0]-= a/4; x[1]-= a/4; x[2]-= a/4; }
 		else             { x[0]-= a/4; x[2]-= a/4; }
@@ -302,9 +322,9 @@ namespace Poly34
 	}
 
 	// return real root of x^5 + a*x^4 + b*x^3 + c*x^2 + d*x + e = 0
-	inline double SolveP5_1( double a , double b , double c , double d , double e )
+	inline double SolveP5_1( double a , double b , double c , double d , double e , double eps )
 	{
-		const double eps = 1e-14;
+//		const double eps = 1e-14;
 
 		int cnt;
 		if( fabs(e)<eps ) return 0;
@@ -359,10 +379,10 @@ namespace Poly34
 	}
 
 	// solve equation x^5 + a*x^4 + b*x^3 + c*x^2 + d*x + e = 0
-	inline int SolveP5( double *x , double a , double b , double c , double d , double e )
+	inline unsigned int SolveP5( double *x , double a , double b , double c , double d , double e , double eps )
 	{
-		double r = x[0] = SolveP5_1(a,b,c,d,e);
+		double r = x[0] = SolveP5_1( a , b , c , d , e , eps );
 		double a1 = a+r, b1=b+r*a1, c1=c+r*b1, d1=d+r*c1;
-		return 1+SolveP4(x+1, a1,b1,c1,d1);
+		return 1+SolveP4( x+1 , a1 , b1 , c1 , d1 , eps );
 	}
 }

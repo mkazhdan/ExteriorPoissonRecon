@@ -171,7 +171,11 @@ bool Polynomial< 0 , Degree , Real >::_print( std::ostream &ostream , const std:
 {
 	if( _coefficients[0] )
 	{
-		if( first ) ostream << _coefficients[0];
+		if( first )
+		{
+			if( _coefficients[0]>0 ) ostream << " " << _coefficients[0];
+			else                     ostream <<        _coefficients[0];
+		}
 		else
 		{
 			if( _coefficients[0]<0 ) ostream << " - " << -_coefficients[0];
@@ -189,9 +193,13 @@ bool Polynomial< 0 , Degree , Real >::_print( std::ostream &ostream , const std:
 	{
 		if( first )
 		{
-			if     ( _coefficients[0]== 1 ) ostream << suffix;
+			if     ( _coefficients[0]== 1 ) ostream << " " << suffix;
 			else if( _coefficients[0]==-1 ) ostream << "-" << suffix; 
-			else                            ostream << _coefficients[0] << "*" << suffix;
+			else
+			{
+				if( _coefficients[0]>0 ) ostream << " " << _coefficients[0] << "*" << suffix;
+				else                     ostream <<        _coefficients[0] << "*" << suffix;
+			}
 		}
 		else
 		{
@@ -212,7 +220,11 @@ bool Polynomial< 0 , Degree , Real >::_print( std::ostream &ostream , const std:
 }
 
 template< unsigned int Degree , typename Real >
+#ifdef NEW_GEOMETRY_CODE
+Matrix< Real , Polynomial< 0 , Degree , Real >::NumCoefficients , Polynomial< 0 , Degree , Real >::NumCoefficients > Polynomial< 0 , Degree , Real >::EvaluationMatrix( const Point< Real , 0 > positions[NumCoefficients] )
+#else // !NEW_GEOMETRY_CODE
 SquareMatrix< Real , Polynomial< 0 , Degree , Real >::NumCoefficients > Polynomial< 0 , Degree , Real >::EvaluationMatrix( const Point< Real , 0 > positions[NumCoefficients] )
+#endif // NEW_GEOMETRY_CODE
 {
 	SquareMatrix< Real , NumCoefficients > E;
 	E(0,0) = 1;
@@ -304,14 +316,14 @@ Polynomial< Dim , Degree , Real > &Polynomial< Dim , Degree , Real >::operator= 
 template< unsigned int Dim , unsigned int Degree , typename Real >
 const Real &Polynomial< Dim , Degree , Real >::_coefficient( const unsigned int indices[] , unsigned int maxDegree ) const
 {
-	if( indices[0]>maxDegree ) ERROR_OUT( "degree out of bounds: %d > %d\n" , indices[0] , maxDegree );
+	if( indices[0]>maxDegree ) ERROR_OUT( "degree out of bounds: " , indices[0] , " > " , maxDegree );
 	return _polynomials[ indices[0] ]._coefficient( indices+1 , maxDegree-indices[0] );
 }
 
 template< unsigned int Dim , unsigned int Degree , typename Real >
 Real& Polynomial< Dim , Degree , Real >::_coefficient( const unsigned int indices[] , unsigned int maxDegree )
 {
-	if( indices[0]>maxDegree ) ERROR_OUT( "degree out of bounds: %d > %d\n" , indices[0] , maxDegree );
+	if( indices[0]>maxDegree ) ERROR_OUT( "degree out of bounds: " , indices[0] , " > " , maxDegree );
 	return _polynomials[ indices[0] ]._coefficient( indices+1 , maxDegree-indices[0] );
 }
 
@@ -424,7 +436,6 @@ Real Polynomial< Dim , Degree , Real >::operator()( Reals ... coordinates ) cons
 template< unsigned int Dim , unsigned int Degree , typename Real >
 Real Polynomial< Dim , Degree , Real >::operator()( Point< Real , Dim > p ) const { return _evaluate( &p[0] , Degree ); }
 
-#ifdef NEW_POLY
 template< unsigned int Dim , unsigned int Degree , typename Real >
 template< typename ... Reals >
 Point< Real , Dim > Polynomial< Dim , Degree , Real >::gradient( Reals ... coordinates ) const
@@ -468,7 +479,6 @@ SquareMatrix< Real , Dim > Polynomial< Dim , Degree , Real >::hessian( Point< Re
 	}
 	return hessian;
 }
-#endif // NEW_POLY
 
 /** This method returns the partial derivative with respect to the prescribed dimension.*/
 template< unsigned int Dim , unsigned int Degree , typename Real >
@@ -502,6 +512,14 @@ Polynomial< _Dim-1 , Degree , Real > Polynomial< Dim , Degree , Real >::pullBack
 {
 	static_assert( _Dim!=0 , "Dimension cannot be negative" );
 	return _pullBack< _Dim-1 >( A , Degree );
+}
+
+template< unsigned int Dim , unsigned int Degree , typename Real >
+Polynomial< 1 , Degree , Real > Polynomial< Dim , Degree , Real >::operator()( const Ray< Real , Dim > & ray ) const
+{
+	Matrix< Real , 2 , Dim > A;
+	for( unsigned int i=0 ; i<Dim ; i++ ) A(0,i) = ray.direction[i] , A(1,i) = ray.position[i];
+	return _pullBack< 1 >( A , Degree );
 }
 
 template< unsigned int Dim , unsigned int Degree , typename Real >
@@ -543,7 +561,11 @@ Real Polynomial< Dim , Degree , Real >::integrateUnitRightSimplex( void ) const
 }
 
 template< unsigned int Dim , unsigned int Degree , typename Real >
+#ifdef NEW_GEOMETRY_CODE
+Matrix< Real , Polynomial< Dim , Degree , Real >::NumCoefficients , Polynomial< Dim , Degree , Real >::NumCoefficients > Polynomial< Dim , Degree , Real >::EvaluationMatrix( const Point< Real , Dim > positions[NumCoefficients] )
+#else // !NEW_GEOMETRY_CODE
 SquareMatrix< Real , Polynomial< Dim , Degree , Real >::NumCoefficients > Polynomial< Dim , Degree , Real >::EvaluationMatrix( const Point< Real , Dim > positions[NumCoefficients] )
+#endif // NEW_GEOMETRY_CODE
 {
 	SquareMatrix< Real , NumCoefficients > E;
 	unsigned int degrees[ Dim ];
@@ -580,9 +602,9 @@ template< unsigned int Dim , unsigned int Degree , typename Real >
 std::ostream &operator << ( std::ostream &stream , const Polynomial< Dim , Degree , Real > &poly )
 {
 	std::string varNames[Dim];
-	if     ( Dim==1 ) varNames[0] = "x";
-	else if( Dim==2 ) varNames[0] = "y" , varNames[1] = "x";
-	else if( Dim==3 ) varNames[0] = "z" , varNames[1] = "y" , varNames[2] = "x";
+	if      constexpr ( Dim==1 ) varNames[0] = "x";
+	else if constexpr ( Dim==2 ) varNames[0] = "y" , varNames[1] = "x";
+	else if constexpr ( Dim==3 ) varNames[0] = "z" , varNames[1] = "y" , varNames[2] = "x";
 	else for( int i=0 ; i<Dim ; i++ ) varNames[i] = std::string( "x" ) + std::string( "_" ) + std::to_string( Dim-i-1 );
 	if( poly._print( stream , varNames , true ) ) stream << "0";
 	return stream;
@@ -629,16 +651,21 @@ template< unsigned int Dim , unsigned int Degree1 , unsigned int Degree2 , typen
 Polynomial< Dim , Max< Degree1 , Degree2 >::Value , Real > operator - ( const Polynomial< Dim , Degree1 , Real > &p1 , const Polynomial< Dim , Degree2 , Real > &p2 ){ return p1 + (-p2); }
 
 template< unsigned int Degree , typename Real >
-unsigned int Roots( const Polynomial< 1 , Degree , Real > &p , Real *r )
+unsigned int Roots( const Polynomial< 1 , Degree , Real > &p , Real *r , double eps )
 {
 	ERROR_OUT( "Root functionality not supported for polynomial of degree = %d" , Degree );
 	return 0;
 }
 
 template<>
-inline unsigned int Roots( const Polynomial< 1 , 1 , double > &p , double *r )
+inline unsigned int Roots( const Polynomial< 1 , 1 , double > &p , double *r , double eps )
 {
-	if( p.coefficient(1u)==0 ) return 0;
+	if( fabs( p.coefficient(0u) )<eps )
+	{
+		r[0] = 0;
+		return 1;
+	}
+	else if( p.coefficient(1u)==0 ) return 0;
 	else
 	{
 		r[0] = -p.coefficient(0u) / p.coefficient(1u);
@@ -647,9 +674,16 @@ inline unsigned int Roots( const Polynomial< 1 , 1 , double > &p , double *r )
 }
 
 template<>
-inline unsigned int Roots( const Polynomial< 1 , 2 , double > &p , double *r )
+inline unsigned int Roots( const Polynomial< 1 , 2 , double > &p , double *r , double eps )
 {
-	if( !p.coefficient(2u) ) return Roots( Polynomial< 1 , 1 , double >( p ) , r );
+	if( fabs( p.coefficient(0u) )<eps )
+	{
+		Polynomial< 1 , 1 , double > _p;
+		for( unsigned int i=0 ; i<=1 ; i++ ) _p.coefficient(i) = p.coefficient(i+1);
+		r[0] = 0;
+		return Roots( _p , r+1 , eps )+1;
+	}
+	else if( !p.coefficient(2u) ) return Roots( Polynomial< 1 , 1 , double >( p ) , r , eps );
 	double disc = p.coefficient(1u)*p.coefficient(1u) - 4. * p.coefficient(0u) * p.coefficient(2u);
 	if( disc<0 ) return 0;
 	else if( disc==0 )
@@ -667,22 +701,43 @@ inline unsigned int Roots( const Polynomial< 1 , 2 , double > &p , double *r )
 }
 
 template<>
-inline unsigned int Roots( const Polynomial< 1 , 3 , double > &p , double *r )
+inline unsigned int Roots( const Polynomial< 1 , 3 , double > &p , double *r , double eps )
 {
-	if( !p.coefficient(3u) ) return Roots( Polynomial< 1 , 2 , double >( p ) , r );
-	return Poly34::SolveP3( r , p.coefficient(2u)/p.coefficient(3u) , p.coefficient(1u)/p.coefficient(3u) , p.coefficient(0u)/p.coefficient(3u) );
+	if( fabs( p.coefficient(0u) )<eps )
+	{
+		Polynomial< 1 , 2 , double > _p;
+		for( unsigned int i=0 ; i<=2 ; i++ ) _p.coefficient(i) = p.coefficient(i+1);
+		r[0] = 0;
+		return Roots( _p , r+1 , eps )+1;
+	}
+	else if( !p.coefficient(3u) ) return Roots( Polynomial< 1 , 2 , double >( p ) , r , eps );
+	return Poly34::SolveP3( r , p.coefficient(2u)/p.coefficient(3u) , p.coefficient(1u)/p.coefficient(3u) , p.coefficient(0u)/p.coefficient(3u) , eps );
 }
 
 template<>
-inline unsigned int Roots( const Polynomial< 1 , 4 , double > &p , double *r )
+inline unsigned int Roots( const Polynomial< 1 , 4 , double > &p , double *r , double eps )
 {
-	if( !p.coefficient(4u) ) return Roots( Polynomial< 1 , 3 , double >( p ) , r );
-	return Poly34::SolveP4( r , p.coefficient(3u)/p.coefficient(4u) , p.coefficient(2u)/p.coefficient(4u) , p.coefficient(1u)/p.coefficient(4u) , p.coefficient(0u)/p.coefficient(4u) );
+	if( fabs( p.coefficient(0u) )<eps )
+	{
+		Polynomial< 1 , 3 , double > _p;
+		for( unsigned int i=0 ; i<=3 ; i++ ) _p.coefficient(i) = p.coefficient(i+1);
+		r[0] = 0;
+		return Roots( _p , r+1 , eps )+1;
+	}
+	else if( !p.coefficient(4u) ) return Roots( Polynomial< 1 , 3 , double >( p ) , r , eps );
+	return Poly34::SolveP4( r , p.coefficient(3u)/p.coefficient(4u) , p.coefficient(2u)/p.coefficient(4u) , p.coefficient(1u)/p.coefficient(4u) , p.coefficient(0u)/p.coefficient(4u) , eps );
 }
 
 template<>
-inline unsigned int Roots( const Polynomial< 1 , 5 , double > &p , double *r )
+inline unsigned int Roots( const Polynomial< 1 , 5 , double > &p , double *r , double eps )
 {
-	if( !p.coefficient(5u) ) return Roots( Polynomial< 1 , 4 , double >( p ) , r );
-	return Poly34::SolveP5( r , p.coefficient(4u)/p.coefficient(5u) , p.coefficient(3u)/p.coefficient(5u) , p.coefficient(2u)/p.coefficient(5u) , p.coefficient(1u)/p.coefficient(5u) , p.coefficient(0u)/p.coefficient(5u) );
+	if( fabs( p.coefficient(0u) )<eps )
+	{
+		Polynomial< 1 , 4 , double > _p;
+		for( unsigned int i=0 ; i<=4 ; i++ ) _p.coefficient(i) = p.coefficient(i+1);
+		r[0] = 0;
+		return Roots( _p , r+1 , eps )+1;
+	}
+	else if( !p.coefficient(5u) ) return Roots( Polynomial< 1 , 4 , double >( p ) , r , eps );
+	return Poly34::SolveP5( r , p.coefficient(4u)/p.coefficient(5u) , p.coefficient(3u)/p.coefficient(5u) , p.coefficient(2u)/p.coefficient(5u) , p.coefficient(1u)/p.coefficient(5u) , p.coefficient(0u)/p.coefficient(5u) , eps );
 }

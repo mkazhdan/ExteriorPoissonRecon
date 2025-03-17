@@ -36,20 +36,35 @@ DAMAGE.
 #include "Misha/PlyVertexData.h"
 #include "Misha/MarchingSimplices.h"
 #include "Misha/RegularGrid.h"
+#include "Misha/EigenStreams.h"
+#include "Include/GridSamples.h"
 #include "Include/Hat.h"
+#include "Include/IsoTree.h"
+
+using namespace MishaK;
 
 static const unsigned int CoDim = 2;
 
-Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" ) , LevelSets( "levelSets" ) , Density( "density" );
-Misha::CmdLineParameter< double > TrimDensity( "trimDensity" , 0. ) ;
-Misha::CmdLineReadable Verbose( "verbose" );
+CmdLineParameter< std::string >
+	In( "in" ) ,
+	InDensity( "density" ) ,
+	Out( "out" ) ,
+	OutLevelSets( "levelSets" ) ,
+	OutGridHeader( "grid" );
 
-Misha::CmdLineReadable* params[] =
+CmdLineParameter< double >
+	TrimDensity( "trimDensity" , 0. ) ;
+
+CmdLineReadable
+	Verbose( "verbose" );
+
+CmdLineReadable* params[] =
 {
 	&In ,
+	&InDensity ,
 	&Out ,
-	&LevelSets ,
-	&Density ,
+	&OutLevelSets ,
+	&OutGridHeader ,
 	&TrimDensity ,
 	&Verbose ,
 	NULL
@@ -59,23 +74,13 @@ void ShowUsage( const char* ex )
 {
 	printf( "Usage %s:\n" , ex );
 	printf( "\t --%s <input grid>\n" , In.name.c_str() );
-	printf( "\t[--%s <density grid>]\n" , Density.name.c_str() );
+	printf( "\t[--%s <density grid>]\n" , InDensity.name.c_str() );
 	printf( "\t[--%s <output mesh>]\n" , Out.name.c_str() );
-	printf( "\t[--%s <output level sets>]\n" , LevelSets.name.c_str() );
+	printf( "\t[--%s <output level sets>]\n" , OutLevelSets.name.c_str() );
+	printf( "\t[--%s <output grid header>]\n" , OutGridHeader.name.c_str() );
 	printf( "\t[--%s <trim value>=%f]\n" , TrimDensity.name.c_str() , TrimDensity.value );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
-
-#if 0
-template< unsigned int Dim , unsigned int CoDim >
-std::vector< std::string > GradientNames( void )
-{
-	const std::string _names[]  = { "nx" , "ny" , "nz" , "nw" };
-	std::vector< std::string > names( Dim * CoDim );
-	for( unsigned int c=0 ; c<CoDim ; c++ ) for( unsigned int d=0 ; d<Dim ; d++ ) names[d+c*Dim] = _names[d] + std::to_string( c+1 );
-	return names;
-}
-#endif
 
 Point< double , 3 > SurfaceColor( unsigned int idx )
 {
@@ -88,98 +93,169 @@ Point< double , 3 > SurfaceColor( unsigned int idx )
 	return Point< double , 3 >();
 }
 
-template< typename Data , unsigned int Dim >
-unsigned int GridDepth( const RegularGrid< Data , Dim > &grid )
+template< unsigned int Dim , unsigned int CoDim , typename HierarchicalIndexer >
+int Execute( void )
 {
-	unsigned int depth = 0;
-	for( unsigned int d=0 ; d<Dim ; d++ )
-	{
-		unsigned int _depth = 0;
-		while( ( (1<<_depth)+1u )<grid.res(d) ) _depth++;
-		if( ( (1<<_depth)+1 )!=grid.res(d) ) ERROR_OUT( "Resolution not a power of two: " , _depth );
-		if( d==0 ) depth = _depth;
-		else if( depth!=_depth ) ERROR_OUT( "Grid resolutions vary" );
-	}
-	return depth;
-}
+	Miscellany::PerformanceMeter pMeter;
 
-template< unsigned int Dim , unsigned int CoDim >
-void Execute( void )
-{
-	Miscellany::Timer timer;
-
-	RegularGrid< Point< double , CoDim > , Dim > grid;
-	RegularGrid< double , Dim > density;
 	XForm< double , Dim+1 > voxelToWorld;
+	GridSamples::TreeEstimator< Dim , CoDim > density;
+	IsoTree< Dim , CoDim > *isoTree = nullptr;
 
-	grid.read( In.value , voxelToWorld );
-	unsigned int depth = GridDepth( grid );
+	{
+		Miscellany::PerformanceMeter pMeter;
+
+		unsigned int dim;
+		size_t hierarchicalIndexerHashCode;
+		std::vector< Eigen::VectorXd > v[CoDim];
+
+		FileStream fStream( In.value , true , false );
+		fStream.read( dim );
+		fStream.read( hierarchicalIndexerHashCode );
+		fStream.read( voxelToWorld );
+		for( unsigned int c=0 ; c<CoDim ; c++ ) fStream.read( v[c] );
+		HierarchicalIndexer hierarchicalIndexer( fStream );
+
+		using Node = typename IsoTree< Dim , CoDim >::Node;
+		auto CoefficientFunctor = [&]( unsigned int d , size_t f )
+			{
+				Point< double , CoDim > value;
+				for( unsigned int c=0 ; c<CoDim ; c++ ) value[c] = v[c][d][f];
+				return value;
+			};
+		isoTree = new IsoTree< Dim , CoDim >( hierarchicalIndexer , CoefficientFunctor );
+		if( Verbose.set ) std::cout << pMeter( "Iso-tree" ) << std::endl;
+
+		isoTree->refineZeroCrossing( !OutLevelSets.set );
+		if( Verbose.set ) std::cout << pMeter( "Dilated" ) << std::endl;
+
+		if( OutGridHeader.set )
+		{
+			Eigen::VectorXd _v[CoDim];
+			for( unsigned int c=0 ; c<CoDim ; c++ ) _v[c] = hierarchicalIndexer.regularCoefficients( v[c] );
+			RegularGrid< Dim , double > grid;
+			grid.resize( ( 1<< hierarchicalIndexer.maxDepth() ) + 1 );
+			for( unsigned int c=0 ; c<CoDim ; c++ )
+			{
+				for( size_t i=0 ; i<grid.resolution() ; i++ ) grid[i] = _v[c][i];
+				std::string fileName = OutGridHeader.value + std::string( "." ) + std::to_string( c ) + std::string( ".grid" );
+				grid.write( fileName , voxelToWorld );
+			}
+		}
+	}
+
+	unsigned int depth = isoTree->spaceRoot().maxDepth();
+
 	double scale = 1.;
 	for( unsigned int d=0 ; d<Dim ; d++ ) scale *= voxelToWorld(d,d);
 	scale = pow( scale , 1./Dim );
 
-	double densityScale = 1. / ( 1<<depth );
-	if( Density.set )
+	if( InDensity.set )
 	{
 		XForm< double , Dim+1 > xForm;
-		density.read( Density.value , xForm );
-		if( depth!=GridDepth( density ) ) ERROR_OUT( "Density resolution does not match: " , depth , " != " , GridDepth( density ) );
-		densityScale *= 1<<GridDepth( density );
+		FileStream stream( InDensity.value , true , false );
+		stream.read( xForm );
+		density.read( stream );
 	}
+	pMeter.reset();
+	MarchingSimplices::SimplicialMesh< Dim , unsigned int , Point< double , Dim > > sMesh;
+	{
+		pMeter.reset();
+		std::vector< const typename IsoTree< Dim , CoDim >::Node * > levelSetNodes = isoTree->levelSetNodes( !OutLevelSets.set );
+		if( Verbose.set ) std::cout << pMeter( "Level-set nodes" ) << std::endl;
 
-	timer.reset();
-	MarchingSimplices::SimplicialMesh< Dim , unsigned int , Point< double , Dim > > sMesh = MarchingSimplices::RegularGridTriangulation< Dim >( 1<<depth );
-	if( Verbose.set ) std::cout << "Got ambient space triangulation: " << timer.elapsed() << " (s)" << std::endl;
+		auto LevelSetNodeIndex = [&]( size_t i )
+			{
+				Point< unsigned int , Dim > I;
+				Hat::Index< Dim > _I = levelSetNodes[i]->offset();
+				for( unsigned int d=0 ; d<Dim ; d++ ) I[d] = (unsigned int)_I[d];
+				return I;
+			};
+		sMesh = MarchingSimplices::RegularSubGridTriangulation< Dim >( levelSetNodes.size() , LevelSetNodeIndex , true , false );
+	}
+	if( Verbose.set ) std::cout << pMeter( "Triangulation" ) << std::endl;
 
-	timer.reset();
 	std::vector< Point< double , CoDim > > values( sMesh.vertices.size() );
-	for( unsigned int i=0 ; i<sMesh.vertices.size() ; i++ ) values[i] = grid( sMesh.vertices[i] );
-	if( Verbose.set ) std::cout << "Sampled implicit function: " << timer.elapsed() << " (s)" << std::endl;
+	{
+		unsigned int res = 1<<depth;
+		auto SimplexElement = [&]( size_t i )
+			{
+				Point< double , Dim > p;
+				for( unsigned int d=0 ; d<=Dim ; d++ ) p += sMesh.vertices[ sMesh.simplexIndices[i][d] ];
+				p /= Dim+1;
+				Hat::Index< Dim > E;
+				for( unsigned int d=0 ; d<Dim ; d++ ) E[d] = std::max< int >( 0 , std::min< int >( res-1 , (int)floor( p[d] ) ) );
+				return E;
+			};
+		std::vector< Hat::Index< Dim > > vertexElements( sMesh.vertices.size() );
+		for( unsigned int s=0 ; s<sMesh.simplexIndices.size() ; s++ )
+		{
+			Hat::Index< Dim > E = SimplexElement(s);
+			for( unsigned int d=0 ; d<=Dim ; d++ ) vertexElements[ sMesh.simplexIndices[s][d] ] = E;
+		}
+		ThreadPool::ParallelFor
+		(
+			0 , sMesh.vertices.size() ,
+			[&]( unsigned int t , size_t v )
+			{
+				Point< double , Dim > p = sMesh.vertices[v];
+				Hat::Index< Dim > F;
+				for( unsigned int d=0 ; d<Dim ; d++ ) F[d] = (int)floor( p[d]+0.5 );
+				values[v] = isoTree->functionValue( F );
+			}
+		);
+	}
+	if( Verbose.set ) std::cout << pMeter( "Sampled" ) << std::endl;
 
-	timer.reset();
 	MarchingSimplices::SimplicialMesh< Dim-CoDim , unsigned int , Point< double , Dim > > levelSet;
 	levelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return values[idx]; } , Point< double , CoDim >() );
-	if( Verbose.set ) std::cout << "Level set extracted: " << timer.elapsed() << " (s)" << std::endl;
+	if( Verbose.set ) std::cout << pMeter( "Level set" ) << std::endl;
 
-	{
-		Miscellany::Timer timer;
-		MarchingSimplices::Orient( levelSet.simplexIndices );
-		if( Verbose.set ) std::cout << "Oriented: " << timer.elapsed() << " (s)" << std::endl;
-	}
+	MarchingSimplices::Orient( levelSet.simplexIndices );
+	if( Verbose.set ) std::cout << pMeter( "Oriented" ) << std::endl;
 
-	if( Density.set && TrimDensity.value>0 )
+	if( InDensity.set && TrimDensity.value>0 )
 	{
-		std::vector< SimplexIndex< Dim-CoDim , unsigned int > > temp;
-		std::vector< std::vector< size_t > > components = MarchingSimplices::FaceAdjacentConnectedComponents( levelSet.simplexIndices );
-		for( unsigned int i=0 ; i<components.size() ; i++ )
+		unsigned int res = 1<<depth;
 		{
-			double maxDensity = 0;
-			for( unsigned int j=0 ; j<components[i].size() ; j++ ) for( unsigned int v=0 ; v<=(Dim-CoDim) ; v++ )
-				maxDensity = std::max< double >( maxDensity , density( levelSet.vertices[ levelSet.simplexIndices[ components[i][j] ][v] ]*densityScale ) );
-			if( Verbose.set ) std::cout << "Max Density[ " << i << " ] " << maxDensity << std::endl;
-
-			if( maxDensity>TrimDensity.value )
+			std::vector< SimplexIndex< Dim-CoDim , unsigned int > > temp;
+			std::vector< std::vector< size_t > > components = MarchingSimplices::FaceAdjacentConnectedComponents( levelSet.simplexIndices );
+			for( unsigned int i=0 ; i<components.size() ; i++ )
 			{
-				temp.reserve( temp.size() + components[i].size() );
-				for( unsigned int j=0 ; j<components[i].size() ; j++ ) temp.push_back( levelSet.simplexIndices[ components[i][j] ] );
+				double maxDensity = 0;
+				for( unsigned int j=0 ; j<components[i].size() ; j++ ) for( unsigned int v=0 ; v<=(Dim-CoDim) ; v++ )
+					maxDensity = std::max< double >( maxDensity , density.samplesPerCell( levelSet.vertices[ levelSet.simplexIndices[ components[i][j] ][v] ] / res , 0 ) );
+				if( Verbose.set ) std::cout << "Max Density[ " << i << " ] " << maxDensity << std::endl;
+
+				if( maxDensity>TrimDensity.value )
+				{
+					temp.reserve( temp.size() + components[i].size() );
+					for( unsigned int j=0 ; j<components[i].size() ; j++ ) temp.push_back( levelSet.simplexIndices[ components[i][j] ] );
+				}
 			}
+			levelSet.simplexIndices = temp;
 		}
-		levelSet.simplexIndices = temp;
 	}
 
-	std::vector< Point< double , Dim > > frame[CoDim];
+	std::vector< Point< double , Dim > > frame[2];
 	{
-		Hat::ScalarFunctions< Dim > scalars( 1<<depth );
+		unsigned int res = 1<<depth;
+		Hat::ScalarFunctions< Dim > scalars( res );
 
-		double r = (double)(1<<depth);
-		for( unsigned int c=0 ; c<CoDim ; c++ )
+		frame[0].resize( levelSet.vertices.size() );
+		frame[1].resize( levelSet.vertices.size() );
+
+		Hat::HierarchicalRegularIndexer< Dim > hierarchicalIndexer( depth );
+		typename Hat::HierarchicalRegularIndexer< Dim >::Indexer indexer = hierarchicalIndexer[depth];
+
+		for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
 		{
-			frame[c].resize( levelSet.vertices.size() );
-			Eigen::VectorXd x( grid.resolution() );
-			for( unsigned int i=0 ; i<grid.resolution() ; i++ ) x[i] = grid[i][c];
-			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) frame[c][i] = scalars.gradient( x , levelSet.vertices[i] / r ) / r / scale;
+			Point< Point< double , Dim > , CoDim , double > grad = isoTree->gradient( levelSet.vertices[i] / res , 0 , false ) / res / scale;
+			frame[0][i] = grad[0];
+			frame[1][i] = grad[1];
 		}
 	}
+	delete isoTree;
 
 	for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );
 
@@ -204,77 +280,87 @@ void Execute( void )
 	}
 
 	// Output the level sets
-	if( LevelSets.set )
+	if( OutLevelSets.set )
 	{
-		timer.reset();
+		pMeter.reset();
 
 		using Factory = VertexFactory::Factory< double , VertexFactory::PositionFactory< double , Dim > , VertexFactory::RGBColorFactory< double > >;
 		using Vertex = typename Factory::VertexType;
 
 		std::vector< Vertex > vertices;
-		std::vector< std::vector< int > > simplices;
+		std::vector< SimplexIndex< Dim-1 , int > > simplices;
 
 		for( unsigned int c=0 ; c<CoDim ; c++ )
 		{
-			timer.reset();
-			std::vector< double > values( sMesh.vertices.size() );
-			for( unsigned int i=0 ; i<sMesh.vertices.size() ; i++ )
-			{
-				Point< double , CoDim > v = grid( sMesh.vertices[i] );
-				values[i] = v[c];
-			}
-			if( Verbose.set ) std::cout << "Sampled implicit function: " << timer.elapsed() << " (s)" << std::endl;
-
-			timer.reset();
+			pMeter.reset();
 			MarchingSimplices::SimplicialMesh< Dim-1 , unsigned int , Point< double , Dim > > levelSet;
-			levelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return values[idx]; } , Point< double , 1 >() );
-			if( Verbose.set ) std::cout << "Level set extracted: " << timer.elapsed() << " (s)" << std::endl;
-
+			levelSet = MarchingSimplices::LevelSet< double >( sMesh , [&]( unsigned int idx ){ return values[idx][c]; } , Point< double , 1 >() );
 			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ ) levelSet.vertices[i] = voxelToWorld( levelSet.vertices[i] );
+			if( Verbose.set ) std::cout << pMeter( "Level-set" ) << std::endl;
 
-			size_t vSize = vertices.size();
-			vertices.reserve( vertices.size() + levelSet.vertices.size() );
-			simplices.reserve( simplices.size() + levelSet.simplexIndices.size() );
+			auto AddLevelSet = []( const MarchingSimplices::SimplicialMesh< Dim-1 , unsigned int , Point< double , Dim > > &levelSet , std::vector< Vertex > &vertices , std::vector< SimplexIndex< Dim-1 , int > > &simplices , Point< double , 3 > color )
+				{
+					size_t sz = vertices.size();
+					vertices.reserve( sz + levelSet.vertices.size() );
+					simplices.reserve( simplices.size() + levelSet.simplexIndices.size() );
 
-			Vertex v;
-			v.template get<1>() = SurfaceColor( c );
-			for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
-			{
-				v.template get<0>() = levelSet.vertices[i];
-				vertices.push_back( v );
-			}
-			for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
-			{
-				SimplexIndex< Dim-1 , unsigned int > si = levelSet.simplexIndices[i];
-				std::vector< int > _si(Dim);
-				for( unsigned int j=0 ; j<=Dim-1 ; j++ ) _si[j] = (int)( si[j]  + (unsigned int)vSize );
-				simplices.push_back( _si );
-			}
+					Vertex v;
+					v.template get<1>() = color;
+
+					for( unsigned int i=0 ; i<levelSet.vertices.size() ; i++ )
+					{
+						v.template get<0>() = levelSet.vertices[i];
+						vertices.push_back( v );
+					}
+
+					for( unsigned int i=0 ; i<levelSet.simplexIndices.size() ; i++ )
+					{
+						SimplexIndex< Dim-1 , int > si;
+						for( unsigned int j=0 ; j<=Dim-1 ; j++ ) si[j] = (int)( levelSet.simplexIndices[i][j] + (unsigned int)sz );
+						simplices.push_back( si );
+					}
+				};
+
+			AddLevelSet( levelSet , vertices , simplices , SurfaceColor(c) );
 		}
 
 		Factory factory;
-		PLY::WritePolygons< Factory , int >( LevelSets.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
+		PLY::WriteSimplices( OutLevelSets.value , factory , vertices , simplices , PLY_BINARY_NATIVE );
 	}
+	return EXIT_SUCCESS;
 }
 
 int main( int argc , char* argv[] )
 {
-	Misha::CmdLineParse( argc-1 , argv+1 , params );
+	CmdLineParse( argc-1 , argv+1 , params );
 	if( !In.set )
 	{
 		ShowUsage( argv[0] );
 		return EXIT_SUCCESS;
 	}
 
-
 	unsigned int dim;
-	if( !RegularGrid< double , 1 >::ReadDimension( In.value , dim ) ) ERROR_OUT( "Failed to read dimension: " , In.value );
-	switch( dim )
+	size_t hierarchicalIndexerHashCode;
 	{
-		case 4: Execute< 4 , CoDim >() ; break;
-		case 3: Execute< 3 , CoDim >() ; break;
-		default: ERROR_OUT( "Only dimensions 3 and 4 supported" );
+		FileStream fStream( In.value , true , false );
+		fStream.read( dim );
+		fStream.read( hierarchicalIndexerHashCode );
 	}
+	
+	if( dim==3 )
+	{
+		if     ( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalRegularIndexer< 3 > ).hash_code() ) return Execute< 3 , CoDim , Hat::HierarchicalRegularIndexer< 3 > >();
+		else if( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalAdaptedIndexer< 3 > ).hash_code() ) return Execute< 3 , CoDim , Hat::HierarchicalAdaptedIndexer< 3 > >();
+		else ERROR_OUT( "Unrecognized hierarchical indexer hash: "  , hierarchicalIndexerHashCode );
+	}
+	else if( dim==4 )
+	{
+		if     ( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalRegularIndexer< 4 > ).hash_code() ) return Execute< 4 , CoDim , Hat::HierarchicalRegularIndexer< 4 > >();
+		else if( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalAdaptedIndexer< 4 > ).hash_code() ) return Execute< 4 , CoDim , Hat::HierarchicalAdaptedIndexer< 4 > >();
+		else ERROR_OUT( "Unrecognized hierarchical indexer hash: "  , hierarchicalIndexerHashCode );
+	}
+	else ERROR_OUT( "Only dimensions 3 and 4 supported: " , dim );
+	return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
 }

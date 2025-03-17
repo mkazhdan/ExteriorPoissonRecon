@@ -28,9 +28,6 @@ DAMAGE.
 
 #include <stdio.h>
 #include <stdlib.h>
-#if !defined( __clang__ )
-#include <omp.h>
-#endif // !__clang__
 #include <vector>
 #include <unordered_map>
 
@@ -38,25 +35,49 @@ DAMAGE.
 #include "Misha/CmdLineParser.h"
 #include "Misha/Geometry.h"
 #include "Misha/MarchingSimplices.h"
-#include "ExteriorPoisson.h"
-#include "Include/Samples.h"
 #include "Misha/Ply.h"
 #include "Misha/PlyVertexData.h"
+#include "Misha/MultiThreading.h"
+#include "Misha/Streams.h"
+#include "Misha/EigenStreams.h"
+#include "Include/Samples.h"
+#include "ExteriorPoisson.h"
+
+using namespace MishaK;
 
 static const unsigned int ProjectionIterations = 1000;
 static const double ProjectionEpslion = 1e-10;
 static const unsigned int CoDim = 2;
 
-Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
-Misha::CmdLineParameter< double > NoiseToWeightSigma( "nSigma" , 0.25 );
-Misha::CmdLineParameter< unsigned int > Depth( "depth" , 5 ) , Seed( "seed" , 0 ) , TensorKernelRadius( "tRadius" , 1 ) , DensityKernelRadius( "dRadius" , 1 ) , Verbosity( "verbose" , 0 ) , MinSolveDepth( "minSolveDepth" , 0 ) , MaxSolveDepth( "maxSolveDepth" );
-Misha::CmdLineParameter< double > Scale( "scale" , 1.1 ) , ScreeningWeight( "sWeight" , 50. ) , DirichletWeight( "dWeight" , 0.003125 ) , Jitter( "jitter" , 0 );
-Misha::CmdLineReadable SingleLevel( "singleLevel" ) , FullMultiGrid( "fmg" ) , NoCascadic( "noCascadic" ) , ReCenter( "reCenter" ) , Project( "project" );
-Misha::CmdLineParameter< unsigned int > GSIterations( "gsIters" , 10 ) , VCycles( "vCycles" , 1 );
-Misha::CmdLineParameter< double > IterationMultiplier( "iMult" , 2. );
-Misha::CmdLineReadable ForceHierarchical( "hierarchical" ) , Separate( "separate" );
+CmdLineParameter< std::string >
+	In( "in" ) ,
+	Out( "out" );
 
-Misha::CmdLineReadable* params[] =
+CmdLineParameter< double >
+	NoiseToWeightSigma( "nSigma" , 0.25 ) ,
+	Scale( "scale" , 1.1 ) ,
+	ScreeningWeight( "sWeight" , 100. ) ,
+	DirichletWeight( "dWeight" , 0.00625 ) ,
+	IterationMultiplier( "iMult" , 2. ) ,
+	Jitter( "jitter" , 0 );
+
+CmdLineParameter< unsigned int >
+	Depth( "depth" , 5 ) ,
+	Seed( "seed" , 0 ) ,
+	TensorKernelRadius( "tRadius" , 1 ) ,
+	DensityKernelRadius( "dRadius" , 1 ) ,
+	AdaptiveRadius( "aRadius" , 3 ) ,
+	MinSolveDepth( "minSolveDepth" , 0 ) ,
+	GSIterations( "gsIters" , 10 ) ,
+	MaxSolveDepth( "maxSolveDepth" );
+
+CmdLineReadable
+	Project( "project" ) ,
+	SingleLevel( "singleLevel" ) ,
+	Separate( "separate" ) ,
+	Verbose( "verbose" );
+
+CmdLineReadable* params[] =
 {
 	&In ,
 	&Out ,
@@ -65,21 +86,17 @@ Misha::CmdLineReadable* params[] =
 	&NoiseToWeightSigma ,
 	&DensityKernelRadius ,
 	&TensorKernelRadius ,
-	&VCycles ,
+	&AdaptiveRadius ,
 	&GSIterations ,
-	&Verbosity ,
+	&Verbose ,
 	&ScreeningWeight ,
 	&DirichletWeight ,
-	&SingleLevel ,
 	&Scale ,
 	&IterationMultiplier ,
 	&MinSolveDepth ,
 	&MaxSolveDepth ,
-	&NoCascadic ,
-	&FullMultiGrid ,
 	&Separate ,
-	&ForceHierarchical ,
-	&ReCenter ,
+	&SingleLevel ,
 	&Project ,
 	&Jitter ,
 	NULL
@@ -96,8 +113,8 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <noise-to-weight sigma>=%f]\n" , NoiseToWeightSigma.name.c_str() , NoiseToWeightSigma.value );
 	printf( "\t[--%s <density kernel radius>=%d]\n" , DensityKernelRadius.name.c_str() , DensityKernelRadius.value );
 	printf( "\t[--%s <tensor kernel radius>=%d]\n" , TensorKernelRadius.name.c_str() , TensorKernelRadius.value );
+	printf( "\t[--%s <adaptive radius>=%d]\n" , AdaptiveRadius.name.c_str() , AdaptiveRadius.value );
 	printf( "\t[--%s <jitter magnitude>=%f]\n" , Jitter.name.c_str() , Jitter.value );
-	printf( "\t[--%s <v-cycles>=%d]\n" , VCycles.name.c_str() , VCycles.value );
 	printf( "\t[--%s <gs iterations>=%d]\n" , GSIterations.name.c_str() , GSIterations.value );
 	printf( "\t[--%s <random seed>=%d]\n" , Seed.name.c_str() , Seed.value );
 	printf( "\t[--%s <screening weight>=%g]\n" , ScreeningWeight.name.c_str() , ScreeningWeight.value );
@@ -105,16 +122,15 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <bounding box scale>=%f]\n" , Scale.name.c_str() , Scale.value );
 	printf( "\t[--%s <iteration multiplier>=%f]\n" , IterationMultiplier.name.c_str() , IterationMultiplier.value );
 	printf( "\t[--%s]\n" , Separate.name.c_str() );
-	printf( "\t[--%s]\n" , ForceHierarchical.name.c_str() );
 	printf( "\t[--%s]\n" , SingleLevel.name.c_str() );
-	printf( "\t[--%s]\n" , NoCascadic.name.c_str() );
-	printf( "\t[--%s]\n" , FullMultiGrid.name.c_str() );
-	printf( "\t[--%s]\n" , ReCenter.name.c_str() );
-	printf( "\t[--%s <verbosity>=%d]\n" , Verbosity.name.c_str() , Verbosity.value );
+	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
-template< unsigned int Dim , typename Energy >
+template< unsigned int Dim >
 void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > hermiteData );
+
+template< unsigned int Dim , typename Energy , typename HierarchicalIndexer >
+void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > & hermiteData , ::SquareMatrix< double , Dim+1 > unitCubeToWorld , const HierarchicalIndexer & hierarchicalIndexer );
 
 template< unsigned int Dim >
 std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > ReadSamples( std::string fileName );
@@ -124,146 +140,110 @@ bool ValidSampleFile( std::string fileName );
 
 int main( int argc , char* argv[] )
 {
-	Misha::CmdLineParse( argc-1 , argv+1 , params );
+	Miscellany::PerformanceMeter::Width = 20;
+
+	CmdLineParse( argc-1 , argv+1 , params );
 	if( !In.set )
 	{
 		ShowUsage( argv[0] );
 		return EXIT_SUCCESS;
 	}
 
-	if( !ScreeningWeight.value && !ReCenter.set )
-	{
-		WARN( "Forcing re-centering when there is no screening" );
-		ReCenter.set = true;
-	}
+	Miscellany::PerformanceMeter pMeter;
 
-	bool useSingleCycleCascadic = VCycles.value==1 &&  !NoCascadic.set && !ForceHierarchical.set;
-
-	Miscellany::Timer timer;
-
-	unsigned int dim;
-	if     ( ValidSampleFile<4>( In.value ) ) dim = 4;
-	else if( ValidSampleFile<3>( In.value ) ) dim = 3;
+	if     ( ValidSampleFile< 4 >( In.value ) ) Execute< 4 >( ReadSamples< 4 >( In.value ) );
+	else if( ValidSampleFile< 3 >( In.value ) ) Execute< 3 >( ReadSamples< 3 >( In.value ) );
 	else ERROR_OUT( "Invalid sample file" );
 
-
-	if( useSingleCycleCascadic )
-	{
-		switch( dim )
-		{
-			case 3: Execute< 3 , SingleCycleCascadicSystemEnergy< 3 > >( ReadSamples< 3 >( In.value ) ) ; break;
-			case 4: Execute< 4 , SingleCycleCascadicSystemEnergy< 4 > >( ReadSamples< 4 >( In.value ) ) ; break;
-			default: ERROR_OUT( "Only dimensions 3 and 4 supported" );
-		}
-	}
-	else
-	{
-		switch( dim )
-		{
-			case 3: Execute< 3 , HierarchicalSystemEnergy< 3 > >( ReadSamples< 3 >( In.value ) ) ; break;
-			case 4: Execute< 4 , HierarchicalSystemEnergy< 4 > >( ReadSamples< 4 >( In.value ) ) ; break;
-			default: ERROR_OUT( "Only dimensions 3 and 4 supported" );
-		}
-	}
-
-	if( Verbosity.value && Verbosity.value!=-1 ) ExteriorPoisson::OutputPerformance( "Performance" , timer );
+	if( Verbose.set ) std::cout << pMeter( "Executed" ) << std::endl;
 
 	return EXIT_SUCCESS;
 }
 
-template< unsigned int Dim , typename Energy >
+template< unsigned int Dim >
 void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > hermiteData )
 {
-	using namespace Hat;
-
-	Miscellany::Timer timer;
-
-	if( !MaxSolveDepth.set ) MaxSolveDepth.value = Depth.value;
-	MaxSolveDepth.value = std::min< int >( MaxSolveDepth.value , Depth.value );
-	MinSolveDepth.value = std::min< int >( MinSolveDepth.value , Depth.value );
-
 	// Map the samples into the unit cube
-	SquareMatrix< double , Dim+1 > unitCubeToWorld;
+	::SquareMatrix< double , Dim+1 > unitCubeToWorld;
 	{
-		SquareMatrix< double , Dim+1 > worldToUnitCube = ExteriorPoisson::ToUnitCube< Dim >( [&]( unsigned int idx ){ return hermiteData[idx].first; } , hermiteData.size() , Scale.value );
+		::SquareMatrix< double , Dim+1 > worldToUnitCube = ExteriorPoisson::ToUnitCube< Dim >( [&]( size_t idx ){ return hermiteData[idx].first; } , hermiteData.size() , Scale.value );
 		for( unsigned int i=0 ; i<hermiteData.size() ; i++ ) hermiteData[i].first = worldToUnitCube( hermiteData[i].first );
 		unitCubeToWorld = worldToUnitCube.inverse();
 	}
 
 	if( Jitter.value>0 )
 	{
-		SquareMatrix< double , Dim+1 > translation = SquareMatrix< double , Dim+1 >::Identity();
+		::SquareMatrix< double , Dim+1 > translation = ::SquareMatrix< double , Dim+1 >::Identity();
 		for( unsigned int d=0 ; d<Dim ; d++ ) translation( Dim , d ) = ( Random< double >() * 2. - 1. ) * Jitter.value;
 		for( unsigned int i=0 ; i<hermiteData.size() ; i++ ) hermiteData[i].first = translation( hermiteData[i].first );
 		unitCubeToWorld = unitCubeToWorld * translation.inverse();
 	}
 
-	// Splat the samples in
-	timer.reset();
-	GridSamples::MultiEstimator< Dim , CoDim > estimator = GridSamples::MultiEstimator< Dim , CoDim >::Get( DensityKernelRadius.value , Depth.value , [&]( unsigned int idx ){ return hermiteData[idx].first; } , hermiteData.size() );
-	if( Verbosity.value && Verbosity.value!=-1 ) ExteriorPoisson::OutputPerformance( "Got density" , timer );
-	if( Verbosity.value && Verbosity.value!=-1 ) 
+	Miscellany::PerformanceMeter *pMeter = new Miscellany::PerformanceMeter();
+	if( AdaptiveRadius.value==-1 )
 	{
-		unsigned int threads = (unsigned int)omp_get_max_threads();
-		std::vector< double > measureSum(threads,0.) , depthSum(threads,0.) , noiseSum(threads,0.);
-#pragma omp parallel for
-		for( int i=0 ; i<(int)hermiteData.size() ; i++ )
-		{
-			unsigned int t = (unsigned int)omp_get_thread_num();
-			measureSum[t] += estimator.measure( hermiteData[i].first );
-			depthSum[t] += estimator.depth( hermiteData[i].first );
-			noiseSum[t] += estimator.noise( hermiteData[i].first );
-		}
-		double measure = 0 , averageDepth = 0 , averageNoise = 0;
-		for( unsigned int t=0 ; t<threads ; t++ ) measure += measureSum[t] , averageDepth += depthSum[t] , averageNoise += noiseSum[t];
-		averageDepth /= hermiteData.size() , averageNoise /= hermiteData.size();
-		std::cout << "Total measure / average depth / average noise: " << measure << " / " << averageDepth << " / " << averageNoise << std::endl; 
+		using HierarchicalIndexer = Hat::HierarchicalRegularIndexer< Dim >;
+		HierarchicalIndexer hierarchicalIndexer( Depth.value );
+		if( Verbose.set ) std::cout << (*pMeter)( "Indexer" ) << std::endl;
+		delete pMeter;
+		return Execute< Dim , SingleCycleCascadicSystemEnergy< Dim , typename HierarchicalIndexer::Indexer > >( hermiteData , unitCubeToWorld , hierarchicalIndexer );
 	}
+	else
+	{
+		using HierarchicalIndexer = Hat::HierarchicalAdaptedIndexer< Dim >;
+		HierarchicalIndexer hierarchicalIndexer( hermiteData.size() , [&]( size_t i ){ return hermiteData[i].first; } , AdaptiveRadius.value , Depth.value );
+		if( Verbose.set ) std::cout << (*pMeter)( "Indexer" ) << std::endl;
+		delete pMeter;
+		return Execute< Dim , SingleCycleCascadicSystemEnergy< Dim , typename HierarchicalIndexer::Indexer > >( hermiteData , unitCubeToWorld , hierarchicalIndexer );
+	}
+}
+
+template< unsigned int Dim , typename Energy , typename Indexer >
+void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > &  hermiteData , ::SquareMatrix< double , Dim+1 > unitCubeToWorld , const Indexer & hierarchicalIndexer )
+{
+	using namespace Hat;
+
+	Miscellany::PerformanceMeter pMeter;
+
+	if( !MaxSolveDepth.set ) MaxSolveDepth.value = Depth.value;
+	MaxSolveDepth.value = std::min< int >( MaxSolveDepth.value , Depth.value );
+	MinSolveDepth.value = std::min< int >( MinSolveDepth.value , Depth.value );
+
+	// Order the samples
+	OrderedSampler< Dim > orderedSampler( [&]( size_t idx ){ return hermiteData[idx].first; } , hermiteData.size() , 1<<Depth.value );
+	if( Verbose.set ) std::cout << pMeter( "Ordered samples" ) << std::endl;
+
+	// Splat the samples in
+	GridSamples::TreeEstimator< Dim , 2 > estimator( DensityKernelRadius.value , Depth.value , [&]( size_t idx ){ return hermiteData[idx].first; } , orderedSampler , true );
+	if( Verbose.set ) std::cout << pMeter( "Density" ) << std::endl;
 
 	srand( Seed.value );
 
 	auto NoiseToWeight = []( double n ){ return exp( -n*n/(2.*NoiseToWeightSigma.value*NoiseToWeightSigma.value) ); };
-	timer.reset();
+	pMeter.reset();
 	ExteriorPoisson::Reconstructor< Dim , Energy > recon
 	(
+		hierarchicalIndexer ,
 		Depth.value , MinSolveDepth.value , MaxSolveDepth.value ,
-		[&]( unsigned int idx ){ return hermiteData[idx]; } , hermiteData.size() ,
+		[&]( size_t idx ){ return hermiteData[idx]; } , orderedSampler ,
 		estimator ,
 		NoiseToWeight ,
 		DirichletWeight.value , ScreeningWeight.value ,
 		TensorKernelRadius.value ,
 		Project.set ? ProjectionIterations : 0 , ProjectionEpslion ,
-		Verbosity.value
+		Verbose.set
 	);
-	if( Verbosity.value && Verbosity.value!=-1 ) ExteriorPoisson::OutputPerformance( "Initialized reconstructor" , timer );
+	if( Verbose.set ) std::cout << pMeter( "Reconstructor" ) << std::endl;
 
-	std::pair< Eigen::VectorXd , Eigen::VectorXd > solution = recon.solve
+	recon.solve
 	(
-		NULL ,
-		NoCascadic.set , FullMultiGrid.set , SingleLevel.set , IterationMultiplier.value , 
-		VCycles.value , GSIterations.value , Separate.set , 
-		Verbosity.value
+		SingleLevel.set ,
+		IterationMultiplier.value , 
+		GSIterations.value ,
+		Separate.set , 
+		Verbose.set
 	);
 
-	if( ReCenter.set )
-	{
-		ScalarFunctions< Dim > scalars( 1<<Depth.value );
-		double xErr = 0 , yErr = 0 , xAvg = 0 , yAvg = 0;
-		for( unsigned int i=0 ; i<hermiteData.size() ; i++ )
-		{
-			Point< double , Dim > p = hermiteData[i].first;
-			double xVal = scalars.value( solution.first , p ) , yVal = scalars.value( solution.second , p );
-			xAvg += xVal , yAvg += yVal , xErr += xVal * xVal , yErr += yVal * yVal;
-		}
-		xAvg /= hermiteData.size() , yAvg /= hermiteData.size() , xErr /= hermiteData.size() , yErr /= hermiteData.size();
-		if( Verbosity.value>2 )
-		{
-			std::cout << "Average: " << xAvg << " / " << yAvg << std::endl;
-			std::cout << "Interpolation Error: " << xErr << " / " << yErr << std::endl;
-		}
-		for( unsigned int i=0 ; i<solution.first.size() ; i++ ) solution.first[i] -= xAvg;
-		for( unsigned int i=0 ; i<solution.second.size() ; i++ ) solution.second[i] -= yAvg;
-	}
 
 	if( Out.set )
 	{
@@ -271,38 +251,29 @@ void Execute( std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetric
 
 		XForm< double , Dim+1 > voxelToWorld;
 		{
-			SquareMatrix< double , Dim+1 > gridToCube = SquareMatrix< double , Dim+1 >::Identity();
+			::SquareMatrix< double , Dim+1 > gridToCube = ::SquareMatrix< double , Dim+1 >::Identity();
 			for( unsigned int d=0 ; d<Dim ; d++ ) gridToCube(d,d) = 1./(1<<Depth.value);
 			voxelToWorld = unitCubeToWorld * gridToCube;
 		}
 
-		RegularGrid< Point< double , 2 > , Dim > solutionGrid;
-		unsigned int res[Dim];
-		for( unsigned int d=0 ; d<Dim ; d++ ) res[d] = (1<<Depth.value) + 1;
-		solutionGrid.resize( res );
-		for( unsigned int i=0 ; i<solution.first .size() ; i++ ) solutionGrid[i][0] = solution.first[i] , solutionGrid[i][1] = solution.second[i];
-		solutionGrid.write( Out.value + std::string( ".grid" ) , voxelToWorld );
-
+		// Output the grid of solution coefficients
 		{
-			Hat::ScalarFunctions< Dim > scalars( 1<<Depth.value );
-			RegularGrid< double , Dim > samplesPerCell;
-			unsigned int res[Dim];
-			for( unsigned int d=0 ; d<Dim ; d++ ) res[d] = (1<<Depth.value) + 1;
-			samplesPerCell.resize( res );
-			for( size_t i=0 ; i<scalars.functionNum() ; i++ )
-			{
-				Hat::Index< Dim > idx = scalars.functionIndex( i );
-				Point< double , Dim > p;
-				for( unsigned int d=0 ; d<Dim ; d++ ) p[d] = idx[d];
-				p /= 1<<Depth.value;
-#ifdef NEW_GRID_SAMPLES
-				samplesPerCell[i] = estimator.samplesPerCell(p);
-#else // !NEW_GRID_SAMPLES
-				samplesPerCell[i] = estimator.template samplesPerCell< true >(p);
-#endif // NEW_GRID_SAMPLES
-				//				samplesPerCell[i] = measureAndNoiseEstimator.depth(p) / Depth.value;
-			}
-			samplesPerCell.write( Out.value + std::string( ".density.grid" ) , voxelToWorld );
+			FileStream fStream( Out.value + std::string( ".tree" ) , false , true );
+			unsigned int dim = Dim;
+			size_t hierarchicalIndexerHashCode = typeid( hierarchicalIndexer ).hash_code();
+			fStream.write( dim );
+			fStream.write( hierarchicalIndexerHashCode );
+			fStream.write( voxelToWorld );
+			fStream.write( recon.x() );
+			fStream.write( recon.y() );
+			hierarchicalIndexer.write( fStream , false );
+		}
+
+		// Output the density estimator
+		{
+			FileStream fStream( Out.value + std::string( ".density.tree" ) , false , true );
+			fStream.write( voxelToWorld );
+			estimator.write( fStream , false );
 		}
 	}
 }
@@ -312,14 +283,13 @@ template< unsigned int Dim >
 std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > ReadSamples( std::string fileName )
 {
 	std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double , Dim > > > hermiteData;
-	if( Misha::GetFileExtension( fileName )==std::string( "ply" ) )
+	if( GetFileExtension( fileName )==std::string( "ply" ) )
 	{
 		using Factory = VertexFactory::Factory< double, VertexFactory::PositionFactory< double, Dim >, VertexFactory::MatrixFactory< double , Dim , Dim > >;
 		Factory factory = Factory( VertexFactory::PositionFactory< double , Dim >() , VertexFactory::MatrixFactory< double , Dim , Dim >( "skew" ) );
 		std::vector< typename Factory::VertexType > vertices;
 		std::vector< SimplexIndex< Dim-CoDim, unsigned int > > simplexIndices;
-		int fileType;
-		PLY::ReadSimplices( fileName , factory , vertices , simplexIndices , NULL , fileType );
+		int fileType = PLY::ReadSimplices( fileName , factory , vertices , simplexIndices , NULL );
 		hermiteData.resize( vertices.size() );
 		for( int i=0 ; i<vertices.size() ; i++ )
 		{

@@ -33,9 +33,16 @@ DAMAGE.
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <cassert>
+#include <string.h>
+#include "Exceptions.h"
 
 
-namespace Misha
+namespace MishaK
 {
 	/** This class represents a named argument that can be read from the command line */
 	class CmdLineReadable
@@ -126,6 +133,9 @@ namespace Misha
 	*** The last parameter must be a NULL pointer. */
 	void CmdLineParse( int argc , char **argv, CmdLineReadable **params );
 
+	/** This function takes a vectros of arguments and tries to set the parameters. */
+	void CmdLineParse( int argc , char **argv, const std::vector< CmdLineReadable * > &params );
+
 	/** Converts a string to upper case*/
 	std::string ToUpper( const std::string &str );
 
@@ -143,6 +153,7 @@ namespace Misha
 
 	/** Returns and array of individual words read from a file */
 	std::vector< std::string > ReadWords( const std::string &fileName );
-}
+
 #include "CmdLineParser.inl"
+}
 #endif // CMD_LINE_PARSER_INCLUDED
