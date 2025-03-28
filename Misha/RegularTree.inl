@@ -160,7 +160,7 @@ bool RegularTreeNode< Dim , NodeData , DepthAndOffsetType >::_initChildren( Allo
 		if( children ) delete[] children;
 		children = new RegularTreeNode[ 1<<Dim ];
 	}
-	if( !children ) ERROR_OUT( "Failed to initialize children" );
+	if( !children ) MK_ERROR_OUT( "Failed to initialize children" );
 	for( int idx=0 ; idx<(1<<Dim) ; idx++ )
 	{
 		children[idx].parent = this;
@@ -181,7 +181,7 @@ bool RegularTreeNode< Dim , NodeData , DepthAndOffsetType >::_initChildren_s( Al
 	// Allocate the children
 	if( nodeAllocator ) _children = GetAddress( nodeAllocator->newElements( 1<<Dim ) );
 	else                _children = new RegularTreeNode[ 1<<Dim ];
-	if( !_children ) ERROR_OUT( "Failed to initialize children" );
+	if( !_children ) MK_ERROR_OUT( "Failed to initialize children" );
 	for( int idx=0 ; idx<(1<<Dim) ; idx++ )
 	{
 		_children[idx].parent = this;
@@ -650,7 +650,7 @@ bool RegularTreeNode< Dim , NodeData , DepthAndOffsetType >::read( BinaryStream 
 		{
 			node->children = nullptr;
 			node->initChildren< false >( nodeAllocator , initializer );
-			if( !stream.read( GetPointer( node->children , 1<<Dim ) , 1<<Dim ) ) ERROR_OUT( "Failed to read children" );
+			if( !stream.read( GetPointer( node->children , 1<<Dim ) , 1<<Dim ) ) MK_ERROR_OUT( "Failed to read children" );
 			for( int i=0 ; i<(1<<Dim) ; i++ )
 			{
 				node->children[i].parent = node;
@@ -658,7 +658,7 @@ bool RegularTreeNode< Dim , NodeData , DepthAndOffsetType >::read( BinaryStream 
 			}
 		}
 	};
-	if( !stream.read( *this ) ) ERROR_OUT( "Failed to read root" );
+	if( !stream.read( *this ) ) MK_ERROR_OUT( "Failed to read root" );
 	ReadChildren( this );
 	return true;
 }
@@ -1039,7 +1039,7 @@ unsigned int RegularTreeNode< Dim , NodeData , DepthAndOffsetType >::ConstNeighb
 	// Check that we actually have a center node
 	if( !pNeighbors.neighbors.data[ CenterIndex ] )
 	{
-		WARN_ONCE( "Center parent node not set" );
+		MK_WARN_ONCE( "Center parent node not set" );
 		return 0;
 	}
 

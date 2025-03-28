@@ -104,7 +104,7 @@ std::pair< Point< double , Dim > , Point< double , Dim > > FitBlade( Hat::SkewSy
 template< unsigned int Dim , typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
 SquareMatrix< double , Dim+1 > ToUnitCube( SampleFunctor F , size_t sampleNum )
 {
-	if( !sampleNum ) ERROR_OUT( "Expected some samples: " , sampleNum );
+	if( !sampleNum ) MK_ERROR_OUT( "Expected some samples: " , sampleNum );
 
 	SquareMatrix< double , Dim+1 > xForm = SquareMatrix< double , Dim+1 >::Identity();
 	Point< double , Dim > bBox[2];
@@ -232,7 +232,7 @@ int main( int argc , char* argv[] )
 	catch( const Samples::InvalidSamplerException & )
 	{
 		try{ Execute< 4 >( Samples::Surface::GetSamples( SampleResolution.value , SampleType.value , !RegularSample.set ) ); }
-		catch( const Samples::InvalidSamplerException & ){ ERROR_OUT( "Could not parse sample type: " , SampleType.value ); }
+		catch( const Samples::InvalidSamplerException & ){ MK_ERROR_OUT( "Could not parse sample type: " , SampleType.value ); }
 	}
 
 	return EXIT_SUCCESS;

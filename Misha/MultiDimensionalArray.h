@@ -36,199 +36,202 @@ DAMAGE.
 
 //#define USE_DYNAMIC_MULTI_DIMENSIONAL_ARRAY
 
-namespace MultiDimensionalArray
+namespace MishaK
 {
-	///////////////////////////
-	// MultiDimensionalArray //
-	///////////////////////////
-
-	template< unsigned int Res , unsigned int ... Ress >
-	constexpr unsigned int ArraySize( void )
+	namespace MultiDimensionalArray
 	{
-		if constexpr( sizeof...(Ress)!=0 ) return Res * ArraySize< Ress ... >();
-		else                               return Res;
-	}
+		///////////////////////////
+		// MultiDimensionalArray //
+		///////////////////////////
 
-	template< unsigned int Res , unsigned int ... Ress >
-	constexpr unsigned int ArrayIndex( const unsigned int idx[] )
-	{
-		if constexpr( sizeof...(Ress)!=0 ) return idx[0] * ArraySize< Ress ... >() + ArrayIndex< Ress ... >( idx+1 );
-		else                               return idx[0];
-	};
-
-	template< unsigned int Res , unsigned int ... Ress > 
-	constexpr unsigned int ArrayIndex( const int idx[] )
-	{
-		if constexpr( sizeof...(Ress)!=0 ) return idx[0] * ArraySize< Ress ... >() + ArrayIndex< Ress ... >( idx+1 );
-		else                               return idx[0];
-	};
-
-	// Wrappers for accessing a pointer as a multi-dimensional array
-	template< class Data , unsigned int ... Ress > struct ConstArrayWrapper{};
-	template< class Data , unsigned int ... Ress > struct      ArrayWrapper{};
-
-
-	// The types representing an I-th dimensional slice of a multi-dimensional array
-	template< unsigned int I , class Data , unsigned int ... Ress > struct SliceType;
-
-	// Base slice: Return the wrapper itself
-	template< class Data , unsigned int Res , unsigned int ... Ress >
-	struct SliceType< 0 , Data , Res , Ress ... >
-	{
-		typedef ConstArrayWrapper< Data , Res , Ress ... > const_type;
-		typedef      ArrayWrapper< Data , Res , Ress ... >       type;
-	};
-
-	// Specialized base slice: Return a reference to the data
-	template< class Data >
-	struct SliceType< 0 , Data >
-	{
-		typedef const Data & const_type;
-		typedef       Data &       type;
-	};
-
-	// Partial slice: Recurse
-	template< unsigned int I , class Data , unsigned int Res , unsigned int ... Ress >
-	struct SliceType< I , Data , Res , Ress ... >
-	{
-		typedef typename SliceType< I-1 , Data , Ress ... >::const_type const_type;
-		typedef typename SliceType< I-1 , Data , Ress ... >::      type       type;
-	};
-
-	template< class Data , unsigned int Res , unsigned int ... Ress >
-	struct ConstArrayWrapper< Data , Res , Ress ... >
-	{
-		static const unsigned int Size = ArraySize< Res , Ress ... >();
-		typedef       Data                  data_type;
-		typedef const Data&       data_reference_type;
-		typedef const Data& const_data_reference_type;
-
-		// The constructors wrap the pointer
-		ConstArrayWrapper(      Pointer( Data ) d ) : _data(d) {}
-		ConstArrayWrapper( ConstPointer( Data ) d ) : _data(d) {}
-
-		// Operator [] for slicing off a sub-array
-		// -- When wrapper is a one-dimensional array, return the indexed data.
-		// -- Otherwise return the sub-array.
-		typename std::conditional< sizeof ... ( Ress )==0 , const Data & , ConstArrayWrapper< Data , Ress ... > >::type operator[]( unsigned int idx ) const
+		template< unsigned int Res , unsigned int ... Ress >
+		constexpr unsigned int ArraySize( void )
 		{
-			if constexpr( sizeof ... ( Ress )==0 ) return _data[idx];
-			else return ConstArrayWrapper< Data , Ress ... >( _data + ArraySize< Ress ... >() * idx );
+			if constexpr( sizeof...(Ress)!=0 ) return Res * ArraySize< Ress ... >();
+			else                               return Res;
 		}
 
-		// Operator () for accessing elements of the multi-dimensional array using a multi-dimensional index
-		const_data_reference_type operator()( const          int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
-		const_data_reference_type operator()( const unsigned int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
-		data_reference_type       operator()( const          int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
-		data_reference_type       operator()( const unsigned int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
-
-		// Operator << for writing the contents of the multi-dimensional array to a stream
-		friend std::ostream &operator << ( std::ostream &os , const ConstArrayWrapper &slice ) 
+		template< unsigned int Res , unsigned int ... Ress >
+		constexpr unsigned int ArrayIndex( const unsigned int idx[] )
 		{
-			os << "{ ";
-			for( unsigned int i=0 ; i<Res ; i++ )
+			if constexpr( sizeof...(Ress)!=0 ) return idx[0] * ArraySize< Ress ... >() + ArrayIndex< Ress ... >( idx+1 );
+			else                               return idx[0];
+		};
+
+		template< unsigned int Res , unsigned int ... Ress > 
+		constexpr unsigned int ArrayIndex( const int idx[] )
+		{
+			if constexpr( sizeof...(Ress)!=0 ) return idx[0] * ArraySize< Ress ... >() + ArrayIndex< Ress ... >( idx+1 );
+			else                               return idx[0];
+		};
+
+		// Wrappers for accessing a pointer as a multi-dimensional array
+		template< class Data , unsigned int ... Ress > struct ConstArrayWrapper{};
+		template< class Data , unsigned int ... Ress > struct      ArrayWrapper{};
+
+
+		// The types representing an I-th dimensional slice of a multi-dimensional array
+		template< unsigned int I , class Data , unsigned int ... Ress > struct SliceType;
+
+		// Base slice: Return the wrapper itself
+		template< class Data , unsigned int Res , unsigned int ... Ress >
+		struct SliceType< 0 , Data , Res , Ress ... >
+		{
+			typedef ConstArrayWrapper< Data , Res , Ress ... > const_type;
+			typedef      ArrayWrapper< Data , Res , Ress ... >       type;
+		};
+
+		// Specialized base slice: Return a reference to the data
+		template< class Data >
+		struct SliceType< 0 , Data >
+		{
+			typedef const Data & const_type;
+			typedef       Data &       type;
+		};
+
+		// Partial slice: Recurse
+		template< unsigned int I , class Data , unsigned int Res , unsigned int ... Ress >
+		struct SliceType< I , Data , Res , Ress ... >
+		{
+			typedef typename SliceType< I-1 , Data , Ress ... >::const_type const_type;
+			typedef typename SliceType< I-1 , Data , Ress ... >::      type       type;
+		};
+
+		template< class Data , unsigned int Res , unsigned int ... Ress >
+		struct ConstArrayWrapper< Data , Res , Ress ... >
+		{
+			static const unsigned int Size = ArraySize< Res , Ress ... >();
+			typedef       Data                  data_type;
+			typedef const Data&       data_reference_type;
+			typedef const Data& const_data_reference_type;
+
+			// The constructors wrap the pointer
+			ConstArrayWrapper(      Pointer( Data ) d ) : _data(d) {}
+			ConstArrayWrapper( ConstPointer( Data ) d ) : _data(d) {}
+
+			// Operator [] for slicing off a sub-array
+			// -- When wrapper is a one-dimensional array, return the indexed data.
+			// -- Otherwise return the sub-array.
+			typename std::conditional< sizeof ... ( Ress )==0 , const Data & , ConstArrayWrapper< Data , Ress ... > >::type operator[]( unsigned int idx ) const
 			{
-				if( i ) os << " , ";
-				os << slice[i];
+				if constexpr( sizeof ... ( Ress )==0 ) return _data[idx];
+				else return ConstArrayWrapper< Data , Ress ... >( _data + ArraySize< Ress ... >() * idx );
 			}
-			os << " }";
-			return os;
-		}
-	protected:
-		// A pointer to the multi-dimensional array data
-		ConstPointer( Data ) _data;
-	};
 
-	template< class Data , unsigned int Res , unsigned int ... Ress >
-	struct ArrayWrapper< Data , Res , Ress ... >
-	{
-		static const unsigned int Size = ArraySize< Res , Ress ... >();
-		typedef       Data                  data_type;
-		typedef       Data&       data_reference_type;
-		typedef const Data& const_data_reference_type;
+			// Operator () for accessing elements of the multi-dimensional array using a multi-dimensional index
+			const_data_reference_type operator()( const          int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+			const_data_reference_type operator()( const unsigned int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+			data_reference_type       operator()( const          int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+			data_reference_type       operator()( const unsigned int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
 
-		ArrayWrapper( Pointer( Data ) d ) : _data(d) {}
+			// Operator << for writing the contents of the multi-dimensional array to a stream
+			friend std::ostream &operator << ( std::ostream &os , const ConstArrayWrapper &slice ) 
+			{
+				os << "{ ";
+				for( unsigned int i=0 ; i<Res ; i++ )
+				{
+					if( i ) os << " , ";
+					os << slice[i];
+				}
+				os << " }";
+				return os;
+			}
+		protected:
+			// A pointer to the multi-dimensional array data
+			ConstPointer( Data ) _data;
+		};
 
-		// Operator [] for slicing off a sub-array
-		typename std::conditional< sizeof ... ( Ress )==0 , Data & , ArrayWrapper< Data , Ress ... > >::type operator[]( unsigned int idx )
+		template< class Data , unsigned int Res , unsigned int ... Ress >
+		struct ArrayWrapper< Data , Res , Ress ... >
 		{
-			if constexpr( sizeof ... ( Ress )==0 ) return _data[idx];
-			else return ArrayWrapper< Data , Ress ... >( _data + ArraySize< Ress ... >() * idx );
-		}
-		typename std::conditional< sizeof ... ( Ress )==0 , const Data & , ConstArrayWrapper< Data , Ress ... > >::type operator[]( unsigned int idx ) const
-		{
-			if constexpr( sizeof ... ( Ress )==0 ) return _data[idx];
-			else return ConstArrayWrapper< Data , Ress ... >( _data + ArraySize< Ress ... >() * idx );
-		}
+			static const unsigned int Size = ArraySize< Res , Ress ... >();
+			typedef       Data                  data_type;
+			typedef       Data&       data_reference_type;
+			typedef const Data& const_data_reference_type;
 
-		data_reference_type       operator()( const          int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
-		data_reference_type       operator()( const unsigned int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
-		const_data_reference_type operator()( const          int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
-		const_data_reference_type operator()( const unsigned int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+			ArrayWrapper( Pointer( Data ) d ) : _data(d) {}
 
-		operator ConstArrayWrapper< Data , Res , Ress ... >() const { return ConstArrayWrapper< Data , Res , Ress ... >( ( ConstPointer( Data ) )_data ); }
+			// Operator [] for slicing off a sub-array
+			typename std::conditional< sizeof ... ( Ress )==0 , Data & , ArrayWrapper< Data , Ress ... > >::type operator[]( unsigned int idx )
+			{
+				if constexpr( sizeof ... ( Ress )==0 ) return _data[idx];
+				else return ArrayWrapper< Data , Ress ... >( _data + ArraySize< Ress ... >() * idx );
+			}
+			typename std::conditional< sizeof ... ( Ress )==0 , const Data & , ConstArrayWrapper< Data , Ress ... > >::type operator[]( unsigned int idx ) const
+			{
+				if constexpr( sizeof ... ( Ress )==0 ) return _data[idx];
+				else return ConstArrayWrapper< Data , Ress ... >( _data + ArraySize< Ress ... >() * idx );
+			}
 
-		friend std::ostream &operator << ( std::ostream &os , const ArrayWrapper &slice ){ return os << ( ConstArrayWrapper< Data , Res , Ress ... > )slice; }
-	protected:
-		// A pointer to the zero-dimensional array data
-		Pointer( Data ) _data;
+			data_reference_type       operator()( const          int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+			data_reference_type       operator()( const unsigned int idx[] )       { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+			const_data_reference_type operator()( const          int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+			const_data_reference_type operator()( const unsigned int idx[] ) const { return _data[ ArrayIndex< Res , Ress ... >( idx ) ]; }
+
+			operator ConstArrayWrapper< Data , Res , Ress ... >() const { return ConstArrayWrapper< Data , Res , Ress ... >( ( ConstPointer( Data ) )_data ); }
+
+			friend std::ostream &operator << ( std::ostream &os , const ArrayWrapper &slice ){ return os << ( ConstArrayWrapper< Data , Res , Ress ... > )slice; }
+		protected:
+			// A pointer to the zero-dimensional array data
+			Pointer( Data ) _data;
 #ifdef USE_DYNAMIC_MULTI_DIMENSIONAL_ARRAY
-		ArrayWrapper( void ) : _data( NullPointer< Data >() ) {}
-		void _init( Pointer( Data ) data ){ _data = data; }
-		template< class _Data , unsigned int _Res , unsigned int ... _Ress > friend struct Array;
+			ArrayWrapper( void ) : _data( NullPointer< Data >() ) {}
+			void _init( Pointer( Data ) data ){ _data = data; }
+			template< class _Data , unsigned int _Res , unsigned int ... _Ress > friend struct Array;
 #endif // USE_DYNAMIC_MULTI_DIMENSIONAL_ARRAY
-	};
+		};
 
-	template< typename Data , unsigned int Res , unsigned int ... Ress >
-	struct Array : public ArrayWrapper< Data , Res , Ress ... >
-	{
-		using ArrayWrapper< Data , Res , Ress ... >::operator();
+		template< typename Data , unsigned int Res , unsigned int ... Ress >
+		struct Array : public ArrayWrapper< Data , Res , Ress ... >
+		{
+			using ArrayWrapper< Data , Res , Ress ... >::operator();
 
 #ifdef USE_DYNAMIC_MULTI_DIMENSIONAL_ARRAY
-		Pointer( Data ) data;
+			Pointer( Data ) data;
 
-		Array( void )
-		{
-			data = NewPointer< Data >( ArraySize< Res , Ress ... >() );
-			ArrayWrapper< Data , Res , Ress ... >::_init( data );
-		}
-		Array( const Array &mda )
-		{
-			data = NewPointer< Data >( ArraySize< Res , Ress ... >() );
-			ArrayWrapper< Data , Res , Ress ... >::_init( data );
-			memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >();
-		}
-		Array &operator=( const Array &mda ){ memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >() ) ; return *this; }
-		~Array( void ){ DeletePointer( data ); }
+			Array( void )
+			{
+				data = NewPointer< Data >( ArraySize< Res , Ress ... >() );
+				ArrayWrapper< Data , Res , Ress ... >::_init( data );
+			}
+			Array( const Array &mda )
+			{
+				data = NewPointer< Data >( ArraySize< Res , Ress ... >() );
+				ArrayWrapper< Data , Res , Ress ... >::_init( data );
+				memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >();
+			}
+			Array &operator=( const Array &mda ){ memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >() ) ; return *this; }
+			~Array( void ){ DeletePointer( data ); }
 #else // !USE_DYNAMIC_MULTI_DIMENSIONAL_ARRAY
-		Data data[ ArraySize< Res , Ress ... >() ];
+			Data data[ ArraySize< Res , Ress ... >() ];
 
-		Array( void ) : ArrayWrapper< Data , Res , Ress ... >( data ){}
-		Array( const Array &mda ) : ArrayWrapper< Data , Res , Ress ... >( data ) { memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >() ); }
-		Array &operator=( const Array &mda ){ memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >() ) ; return *this; }
+			Array( void ) : ArrayWrapper< Data , Res , Ress ... >( data ){}
+			Array( const Array &mda ) : ArrayWrapper< Data , Res , Ress ... >( data ) { memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >() ); }
+			Array &operator=( const Array &mda ){ memcpy( data , mda.data , sizeof(Data) * ArraySize< Res , Ress ... >() ) ; return *this; }
 #endif // USE_DYNAMIC_MULTI_DIMENSIONAL_ARRAY
 
-		ArrayWrapper< Data , Res , Ress ... > operator()( void ){ return ArrayWrapper< Data , Res , Ress ... >( data ); }
-		ConstArrayWrapper< Data , Res , Ress ... > operator()( void ) const { return ConstArrayWrapper< Data , Res , Ress ... >( data ); }
-	};
+			ArrayWrapper< Data , Res , Ress ... > operator()( void ){ return ArrayWrapper< Data , Res , Ress ... >( data ); }
+			ConstArrayWrapper< Data , Res , Ress ... > operator()( void ) const { return ConstArrayWrapper< Data , Res , Ress ... >( data ); }
+		};
 
-	template< unsigned int N >
-	struct Loop
-	{
-		template< typename UpdateFunction , typename ProcessFunction , class ... Arrays >
-		static void Run( const unsigned int *begin , const unsigned int *end , UpdateFunction updateState , ProcessFunction function , Arrays&& ... mda )
+		template< unsigned int N >
+		struct Loop
 		{
-			_Run< 0 >( begin , end , updateState , function , std::forward< Arrays >( mda ) ... ); 
-		}
-	protected:
-		template< unsigned int I , typename UpdateFunction , typename ProcessFunction , class ... Values >
-		static void _Run( const unsigned int *begin , const unsigned int *end , UpdateFunction& updateState , ProcessFunction& function , Values&& ... v )
-		{
-			if constexpr( I<N )
-				for( unsigned int i=begin[0] ; i<end[0] ; i++ ){ updateState( I , i ) ; _Run< I+1 >( begin+1 , end+1 , updateState , function , std::forward< decltype(v[i]) >( v[i] ) ... ); }
-			else
-				function( std::forward< Values >( v ) ... );
-		}
-	};
+			template< typename UpdateFunction , typename ProcessFunction , class ... Arrays >
+			static void Run( const unsigned int *begin , const unsigned int *end , UpdateFunction updateState , ProcessFunction function , Arrays&& ... mda )
+			{
+				_Run< 0 >( begin , end , updateState , function , std::forward< Arrays >( mda ) ... ); 
+			}
+		protected:
+			template< unsigned int I , typename UpdateFunction , typename ProcessFunction , class ... Values >
+			static void _Run( const unsigned int *begin , const unsigned int *end , UpdateFunction& updateState , ProcessFunction& function , Values&& ... v )
+			{
+				if constexpr( I<N )
+					for( unsigned int i=begin[0] ; i<end[0] ; i++ ){ updateState( I , i ) ; _Run< I+1 >( begin+1 , end+1 , updateState , function , std::forward< decltype(v[i]) >( v[i] ) ... ); }
+				else
+					function( std::forward< Values >( v ) ... );
+			}
+		};
+	}
 }
 #endif // MULTI_DIMENSIONAL_ARRAY_INCLUDED

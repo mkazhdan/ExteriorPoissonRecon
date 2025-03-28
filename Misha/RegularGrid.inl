@@ -228,12 +228,12 @@ void RegularGrid< Dim >::Range::_process( IndexFunctor &f , Indices ... indices 
 }
 
 template< unsigned int Dim >
-template< unsigned int Count , typename IndexFunctor /* = std::function< void ( Index ...  ) > */ , typename ... Indices /* = Index */ >
+template< unsigned int Count , typename IndexFunctor /* = std::function< void ( unsigned int , Index ...  ) > */ , typename ... Indices /* = Index */ >
 void RegularGrid< Dim >::Range::_processParallel( IndexFunctor &f , Indices ... indices ) const
 {
 	if constexpr( Count==1 )
 	{
-		if constexpr( Dim==1 ) ThreadPool::ParallelFor( first[0] , second[0] , [&]( unsigned int , size_t i ){ f( indices ... , Index(i) ); } );
+		if constexpr( Dim==1 ) ThreadPool::ParallelFor( first[0] , second[0] , [&]( unsigned int t , size_t i ){ f( t , indices ... , Index(i) ); } );
 		else
 		{
 			typename RegularGrid< Dim-1 >::Range _r;
@@ -242,15 +242,15 @@ void RegularGrid< Dim >::Range::_processParallel( IndexFunctor &f , Indices ... 
 			ThreadPool::ParallelFor
 				(
 					first[0] , second[0] ,
-					[&]( unsigned int , size_t i )
+					[&]( unsigned int t , size_t i )
 					{
 						Index idx;
 						auto _f = [&]( typename RegularGrid< Dim-1 >::Index _idx )
 							{
 								for( unsigned int d=0 ; d<Dim-1 ; d++ ) idx[d+1] = _idx[d];
-								f( indices ... , idx );
+								f( t , indices ... , idx );
 							};
-						idx[0] = i;
+						idx[0] = (int)i;
 						_r.template _process< 1 >( _f );
 					}
 				);
@@ -258,7 +258,8 @@ void RegularGrid< Dim >::Range::_processParallel( IndexFunctor &f , Indices ... 
 	}
 	else
 	{
-		auto _f = [&]( Index I ){ this->template _process< Count-1 >( f , indices ... , I ); };
+		MK_WARN_ONCE( "This could be parallelized" );
+		auto _f = [&]( Index I ){ this->template _process< Count-1 >( 0 , f , indices ... , I ); };
 		this->template _process< 1 >( _f );
 	}
 }
@@ -321,18 +322,35 @@ typename std::enable_if< std::is_integral< Int >::value >::type RegularGrid< Dim
 
 template< unsigned int Dim , typename DataType >
 template< typename Real , unsigned int D >
-#ifdef NEW_REGULAR_GRID_CODE
+#ifdef CLAMPED_EVALUATION
+#ifdef FORCE_BILINEAR
+DataType RegularGrid< Dim , DataType >::_Sample( const unsigned int res[] , const Real coords[] , ConstPointer( DataType ) values )
+#else // !FORCE_BILINEAR
+DataType RegularGrid< Dim , DataType >::_Sample( const unsigned int res[] , const Real coords[] , bool centered , ConstPointer( DataType ) values )
+#endif // FORCE_BILINEAR
+#else // !CLAMPED_EVALUATION
 ProjectiveData< Real , DataType > RegularGrid< Dim , DataType >::_Sample( const unsigned int res[] , const Real coords[] , bool centered , ConstPointer( DataType ) values )
-#else // !NEW_REGULAR_GRID_CODE
-ProjectiveData< Real , DataType > RegularGrid< Dim , DataType >::_Sample( const unsigned int res[] , const Real coords[] , ConstPointer( DataType ) values )
-#endif // NEW_REGULAR_GRID_CODE
+#endif // CLAMPED_EVALUATION
 {
-#ifdef NEW_REGULAR_GRID_CODE
+#ifdef FORCE_BILINEAR
+	Real coord = coords[D-1];
+#else // !FORCE_BILINEAR
 	Real coord = centered ? coords[D-1]-(Real)0.5 : coords[D-1];
+#endif // FORCE_BILINEAR
 	int iCoord1 = (int)floor(coord) , iCoord2 = (int)floor(coord)+1;
 	Real dx1 = (Real)( iCoord2 - coord ) , dx2 = (Real)( coord - iCoord1 );
-	ProjectiveData< Real , DataType > d;
 
+#ifdef CLAMPED_EVALUATION
+	iCoord1 = std::max< int >( 0 , std::min< int >( res[D-1]-1 , iCoord1 ) );
+	iCoord2 = std::max< int >( 0 , std::min< int >( res[D-1]-1 , iCoord2 ) );
+	if constexpr( D==1 ) return values[ iCoord1 ] * dx1 + values[ iCoord2 ] * dx2;
+#ifdef FORCE_BILINEAR
+	else                 return _Sample< Real , D-1 >( res , coords , values + _Resolution< D-1 >(res) * iCoord1 ) * dx1 + _Sample< Real , D-1 >( res , coords , values + _Resolution< D-1 >(res) * iCoord2 ) * dx2;
+#else // !FORCE_BILINEAR
+	else                 return _Sample< Real , D-1 >( res , coords , centered , values + _Resolution< D-1 >(res) * iCoord1 ) * dx1 + _Sample< Real , D-1 >( res , coords , centered , values + _Resolution< D-1 >(res) * iCoord2 ) * dx2;
+#endif // FORCE_BILINEAR
+#else // !CLAMPED_EVALUATION
+	ProjectiveData< Real , DataType > d;
 	if constexpr( D==1 )
 	{
 		if( iCoord1>=0 && iCoord1<(int)res[0] ) d += ProjectiveData< Real , DataType >( values[ iCoord1 ] * dx1 , dx1 );
@@ -345,47 +363,54 @@ ProjectiveData< Real , DataType > RegularGrid< Dim , DataType >::_Sample( const 
 		if( iCoord2>=0 && iCoord2<(int)res[D-1] ) d += _Sample< Real , D-1 >( res , coords , centered , values + _Resolution< D-1 >(res) * iCoord2 ) * dx2;
 		return d;
 	}
-#else // !NEW_REGULAR_GRID_CODE
-	if constexpr( D==1 )
-	{
-		int iCoord1 = (int)floor(coords[0]) , iCoord2 = (int)floor(coords[0])+1;
-		Real dx1 = (Real)( iCoord2 - coords[0] ) , dx2 = (Real)( coords[0] - iCoord1 );
-		ProjectiveData< Real , DataType > d;
-		if( iCoord1>=0 && iCoord1<(int)res[0] ) d += ProjectiveData< Real , DataType >( values[ iCoord1 ] * dx1 , dx1 );
-		if( iCoord2>=0 && iCoord2<(int)res[0] ) d += ProjectiveData< Real , DataType >( values[ iCoord2 ] * dx2 , dx2 );
-		return d;
-	}
-	else
-	{
-		int iCoord1 = (int)floor(coords[D-1]) , iCoord2 = (int)floor(coords[D-1])+1;
-		Real dx1 = (Real)( iCoord2 - coords[D-1] ) , dx2 = (Real)( coords[D-1] - iCoord1 );
-		ProjectiveData< Real , DataType > d;
-		if( iCoord1>=0 && iCoord1<(int)res[D-1] ) d += _Sample< Real , D-1 >( res , coords , values + _Resolution< D-1 >(res) * iCoord1 ) * dx1;
-		if( iCoord2>=0 && iCoord2<(int)res[D-1] ) d += _Sample< Real , D-1 >( res , coords , values + _Resolution< D-1 >(res) * iCoord2 ) * dx2;
-		return d;
-	}
-#endif // NEW_REGULAR_GRID_CODE
+#endif // CLAMPED_EVALUATION
 }
 
 template< unsigned int Dim , typename DataType >
 template< typename Real , unsigned int D >
-#ifdef NEW_REGULAR_GRID_CODE
+#ifdef CLAMPED_EVALUATION
+#ifdef FORCE_BILINEAR
+DataType RegularGrid< Dim , DataType >::_Partial( unsigned int dir , const unsigned int res[] , const Real coords[] , ConstPointer( DataType ) values )
+#else // !FORCE_BILINEAR
+DataType RegularGrid< Dim , DataType >::_Partial( unsigned int dir , const unsigned int res[] , const Real coords[] , bool centered , ConstPointer( DataType ) values )
+#endif // FORCE_BILINEAR
+#else // !CLAMPED_EVALUATION
 ProjectiveData< Real , DataType > RegularGrid< Dim , DataType >::_Partial( unsigned int dir , const unsigned int res[] , const Real coords[] , bool centered , ConstPointer( DataType ) values )
-#else // !NEW_REGULAR_GRID_CODE
-ProjectiveData< Real , DataType > RegularGrid< Dim , DataType >::_Partial( unsigned int dir , const unsigned int res[] , const Real coords[] , ConstPointer( DataType ) values )
-#endif // NEW_REGULAR_GRID_CODE
+#endif // CLAMPED_EVALUATION
 {
-#ifdef NEW_REGULAR_GRID_CODE
+#ifdef FORCE_BILINEAR
+	Real coord = coords[D-1];
+#else // !FORCE_BILINEAR
 	Real coord = centered ? coords[D-1]-(Real)0.5 : coords[D-1];
+#endif // FORCE_BILINEAR
 	int iCoord1 = (int)floor(coord) , iCoord2 = (int)floor(coord)+1;
 	Real dx1 = (Real)( iCoord2 - coord ) , dx2 = (Real)( coord - iCoord1 );
-	ProjectiveData< Real , DataType > data;
 
+#ifdef CLAMPED_EVALUATION
+	iCoord1 = std::max< int >( 0 , std::min< int >( res[D-1]-1 , iCoord1 ) );
+	iCoord2 = std::max< int >( 0 , std::min< int >( res[D-1]-1 , iCoord2 ) );
+	if constexpr( D==1 )
+	{
+		if( dir==0 ) return values[ iCoord2 ] - values[ iCoord1 ];
+		else         return values[ iCoord1 ] * dx1 + values[ iCoord2 ] * dx2;
+	}
+	else
+	{
+#ifdef FORCE_BILINEAR
+		if( dir==D-1 ) return _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord2 ) - _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord1 );
+		else           return _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord1 ) * dx1 + _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord2 ) * dx2;
+#else // !FORCE_BILINEAR
+		if( dir==D-1 ) return _Partial< Real , D-1 >( dir , res , coords , centered , values + _Resolution< D-1 >(res) * iCoord2 ) - _Partial< Real , D-1 >( dir , res , coords , centered , values + _Resolution< D-1 >(res) * iCoord1 );
+		else           return _Partial< Real , D-1 >( dir , res , coords , centered , values + _Resolution< D-1 >(res) * iCoord1 ) * dx1 + _Partial< Real , D-1 >( dir , res , coords , centered , values + _Resolution< D-1 >(res) * iCoord2 ) * dx2;
+#endif // FORCE_BILINEAR
+	}
+#else // !CLAMPED_EVALUATION
+	ProjectiveData< Real , DataType > data;
 	if constexpr( D==1 )
 	{
 		if( dir==0 )
 		{
-			if( iCoord1>=0 && iCoord1<(int)res[0] ) data -= ProjectiveData< Real , DataType >( values[ iCoord1 ] , (Real)1. );
+			if( iCoord1>=0 && iCoord1<(int)res[0] ) data -= ProjectiveData< Real , DataType >( values[ iCoord1 ] , (Real)1 );
 			if( iCoord2>=0 && iCoord2<(int)res[0] ) data += ProjectiveData< Real , DataType >( values[ iCoord2 ] , (Real)1. );
 		}
 		else
@@ -408,41 +433,7 @@ ProjectiveData< Real , DataType > RegularGrid< Dim , DataType >::_Partial( unsig
 		}
 	}
 	return data;
-#else // !NEW_REGULAR_GRID_CODE
-	ProjectiveData< Real , DataType > data;
-
-	if constexpr( D==1 )
-	{
-		int iCoord1 = (int)floor(coords[0]) , iCoord2 = (int)floor(coords[0])+1;
-		Real dx1 = (Real)( iCoord2 - coords[0] ) , dx2 = (Real)( coords[0] - iCoord1 );
-		if( dir==0 )
-		{
-			if( iCoord1>=0 && iCoord1<(int)res[0] ) data -= ProjectiveData< Real , DataType >( values[ iCoord1 ] , (Real)1. );
-			if( iCoord2>=0 && iCoord2<(int)res[0] ) data += ProjectiveData< Real , DataType >( values[ iCoord2 ] , (Real)1. );
-		}
-		else
-		{
-			if( iCoord1>=0 && iCoord1<(int)res[0] ) data += ProjectiveData< Real , DataType >( values[ iCoord1 ] * dx1 , dx1 );
-			if( iCoord2>=0 && iCoord2<(int)res[0] ) data += ProjectiveData< Real , DataType >( values[ iCoord2 ] * dx2 , dx2 );
-		}
-	}
-	else
-	{
-		int iCoord1 = (int)floor(coords[D-1]) , iCoord2 = (int)floor(coords[D-1])+1;
-		Real dx1 = (Real)( iCoord2 - coords[D-1] ) , dx2 = (Real)( coords[D-1] - iCoord1 );
-		if( dir==D-1 )
-		{
-			if( iCoord1>=0 && iCoord1<(int)res[D-1] ) data -= _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord1 );
-			if( iCoord2>=0 && iCoord2<(int)res[D-1] ) data += _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord2 );
-		}
-		else
-		{
-			if( iCoord1>=0 && iCoord1<(int)res[D-1] ) data += _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord1 ) * dx1;
-			if( iCoord2>=0 && iCoord2<(int)res[D-1] ) data += _Partial< Real , D-1 >( dir , res , coords , values + _Resolution< D-1 >(res) * iCoord2 ) * dx2;
-		}
-	}
-	return data;
-#endif // NEW_REGULAR_GRID_CODE
+#endif // CLAMPED_EVALUATION
 }
 
 template< unsigned int Dim , typename DataType >
@@ -450,7 +441,7 @@ template< typename Real >
 void RegularGrid< Dim , DataType >::Write( std::string fileName , const unsigned int res[Dim] , ConstPointer( DataType ) values , XForm< Real , Dim+1 > gridToModel )
 {
 	FILE *fp = fopen( fileName.c_str() , "wb" );
-	if( !fp ) ERROR_OUT( "Failed to open grid file for writing: " , fileName );
+	if( !fp ) MK_ERROR_OUT( "Failed to open grid file for writing: " , fileName );
 	else
 	{
 		// Write the magic number
@@ -501,25 +492,25 @@ template< typename Real >
 void RegularGrid< Dim , DataType >::Read( std::string fileName , unsigned int res[Dim] , Pointer( DataType ) &values , XForm< Real , Dim+1 > &gridToModel )
 {
 	FILE *fp = fopen( fileName.c_str() , "rb" );
-	if( !fp ) ERROR_OUT( "Failed to open grid file for reading: " , fileName );
+	if( !fp ) MK_ERROR_OUT( "Failed to open grid file for reading: " , fileName );
 	else
 	{
 		// Read the magic number
 		{
 			int dim;
-			if( fscanf( fp , " G%d " , &dim )!=1 ) ERROR_OUT( "Failed to read magic number: " , fileName );
-			if( dim!=Dim ) ERROR_OUT( "Dimensions don't match: " , Dim , " != " , dim );
+			if( fscanf( fp , " G%d " , &dim )!=1 ) MK_ERROR_OUT( "Failed to read magic number: " , fileName );
+			if( dim!=Dim ) MK_ERROR_OUT( "Dimensions don't match: " , Dim , " != " , dim );
 		}
 
 		// Read the data type
-		if( !RegularGridDataType< DataType >::Read( fp ) ) ERROR_OUT( "Failed to read type" );
+		if( !RegularGridDataType< DataType >::Read( fp ) ) MK_ERROR_OUT( "Failed to read type" );
 
 		// Read the dimensions
 		{
 			int r;
 			for( int d=0 ; d<Dim ; d++ )
 			{
-				if( fscanf( fp , " %d " , &r )!=1 ) ERROR_OUT( "Failed to read dimension[ " , d , " ]" );
+				if( fscanf( fp , " %d " , &r )!=1 ) MK_ERROR_OUT( "Failed to read dimension[ " , d , " ]" );
 				res[d] = r;
 			}
 		}
@@ -529,7 +520,7 @@ void RegularGrid< Dim , DataType >::Read( std::string fileName , unsigned int re
 			float x;
 			for( int j=0 ; j<Dim+1 ; j++ ) for( int i=0 ; i<Dim+1 ; i++ )
 			{
-				if( fscanf( fp , " %f" , &x )!=1 ) ERROR_OUT( "Failed to read xForm( " , i , " , " , j , " )" );
+				if( fscanf( fp , " %f" , &x )!=1 ) MK_ERROR_OUT( "Failed to read xForm( " , i , " , " , j , " )" );
 				gridToModel(i,j) = (Real)x;
 			}
 		}
@@ -537,12 +528,12 @@ void RegularGrid< Dim , DataType >::Read( std::string fileName , unsigned int re
 		// Read through the end of the line
 		{
 			char line[1024];
-			if( !fgets( line , sizeof(line)/sizeof(char) , fp ) ) ERROR_OUT( "Could not read end of line" );
+			if( !fgets( line , sizeof(line)/sizeof(char) , fp ) ) MK_ERROR_OUT( "Could not read end of line" );
 		}
 
 		values = NewPointer< DataType >( _Resolution(res) );
 		// Read the grid values
-		if( fread( values , sizeof(DataType) , _Resolution(res) , fp )!=_Resolution(res) ) ERROR_OUT( "Failed to read values" );
+		if( fread( values , sizeof(DataType) , _Resolution(res) , fp )!=_Resolution(res) ) MK_ERROR_OUT( "Failed to read values" );
 		fclose( fp );
 	}
 }

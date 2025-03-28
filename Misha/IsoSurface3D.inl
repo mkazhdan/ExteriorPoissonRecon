@@ -212,10 +212,10 @@ Real IsoSurface3D< Real , Index >::_QuadraticInterpolant( Real x0 , Real x1 , Re
 		// Solve a x^2 + b x + c = 0
 		b /= a , c /= a;
 		double disc = b*b - 4.*c;
-		if( disc<0 ) ERROR_OUT( "Negative discriminant: " , disc );
+		if( disc<0 ) MK_ERROR_OUT( "Negative discriminant: " , disc );
 		disc = sqrt( disc );
 		double r1 = ( - b - disc ) / 2. , r2 = ( - b + disc ) / 2.;
-		if( r2<0 || r1>1 ) ERROR_OUT( "Roots out of bounds: " , r1 , " " , r2 );
+		if( r2<0 || r1>1 ) MK_ERROR_OUT( "Roots out of bounds: " , r1 , " " , r2 );
 		if( r2>1 ) return (Real)r1;
 		else       return (Real)r2;
 	}
@@ -252,7 +252,7 @@ Real IsoSurface3D< Real , Index >::_CubicInterpolant( Real x0 , Real x1 , Real x
 	for( int i=0 ; i<rootCount ; i++ ) if( roots[i]>=0 && roots[i]<1 ) _roots[ _rootCount++ ] = roots[i];
 	if     ( _rootCount==1 ) return (Real)_roots[0];
 	else if( _rootCount==3 ) return (Real)_roots[1];
-	else ERROR_OUT( "Unexpected number of roots: " , _rootCount );
+	else MK_ERROR_OUT( "Unexpected number of roots: " , _rootCount );
 	return 0;
 }
 
@@ -284,7 +284,7 @@ Real IsoSurface3D< Real , Index >::_CatmullRomInterpolant( Real x0 , Real x1 , R
 		std::cout << p << std::endl;
 		printf( "Values: %g %g %g %g\n" , x0 , x1 , x2 , x3 );
 		printf( "Roots:" ) ; for( int i=0 ; i<rootCount ; i++ ) printf( " %g" , roots[i] ) ; printf( "\n" );
-		ERROR_OUT( "Unexpected number of roots: " , _rootCount );
+		MK_ERROR_OUT( "Unexpected number of roots: " , _rootCount );
 	}
 	return 0;
 }
@@ -326,7 +326,7 @@ void IsoSurface3D< Real , Index >::_SetZVertices( int resX , int resY , int z , 
 							iso = _CatmullRomInterpolant( values0 ? values0[idx] : values1[idx] , values1[idx] , values2[idx] , values3 ? values3[idx] : values2[idx] , isoValue );
 							break;
 						default:
-							ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+							MK_ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
 						}
 						Point3D< Real > p = Point3D< Real >( (Real)i , (Real)j , (Real)z + iso );
 						long long key = i + j*(resX);
@@ -374,7 +374,7 @@ void IsoSurface3D< Real , Index >::_SetXYVertices( int resX , int resY , int z ,
 							iso = _CatmullRomInterpolant( i>0 ? values[ INDEX(i-1,j) ] : values[idx1] , values[idx1] , values[idx2] , i+1<resX-1 ? values[ INDEX(i+2,j) ] : values[idx2] , isoValue );
 							break;
 						default:
-							ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+							MK_ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
 						}
 						Point3D< Real > p = Point3D< Real >( (Real)i + iso , (Real)j , (Real)z );
 						long long key = i + j*(resX);
@@ -414,7 +414,7 @@ void IsoSurface3D< Real , Index >::_SetXYVertices( int resX , int resY , int z ,
 							iso = _CatmullRomInterpolant( j>0 ? values[ INDEX(i,j-1) ] : values[idx1] , values[idx1] , values[idx2] , j+1<resY-1 ? values[ INDEX(i,j+2) ] : values[idx2] , isoValue );
 							break;
 						default:
-							ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
+							MK_ERROR_OUT( "Unrecognized interpolation type: " , interpolationType );
 						}
 						Point3D< Real > p = Point3D< Real >( (Real)i , (Real)j + iso , (Real)z );
 						long long key = i + j*(resX);

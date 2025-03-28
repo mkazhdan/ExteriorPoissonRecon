@@ -43,7 +43,7 @@ WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 #include "Exceptions.h"
 #include "PlyFile.h"
 
-namespace MishaK
+namespace GregTurk
 {
 #define PLY_ASCII         1      /* ascii PLY file */
 #define PLY_BINARY_BE     2      /* binary PLY file, big endian */

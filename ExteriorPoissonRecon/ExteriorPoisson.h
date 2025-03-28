@@ -100,7 +100,7 @@ namespace MishaK
 		template< unsigned int Dim , typename SampleFunctor /* = std::function< Point< double , Dim > > ( unsigned int idx ) */ >
 		SquareMatrix< double , Dim+1 > ToUnitCube( SampleFunctor F , size_t sampleNum , double scale )
 		{
-			if( !sampleNum ) ERROR_OUT( "Expected some samples: " , sampleNum );
+			if( !sampleNum ) MK_ERROR_OUT( "Expected some samples: " , sampleNum );
 
 			SquareMatrix< double , Dim+1 > xForm = SquareMatrix< double , Dim+1 >::Identity();
 			Point< double , Dim > bBox[2];
@@ -223,7 +223,7 @@ namespace MishaK
 					case 2: treeSplatter.template addSamples< 2 >( __F , orderedSampler , __D , DepthWeight , false ) ; break;
 					case 3: treeSplatter.template addSamples< 3 >( __F , orderedSampler , __D , DepthWeight , false ) ; break;
 					case 4: treeSplatter.template addSamples< 4 >( __F , orderedSampler , __D , DepthWeight , false ) ; break;
-					default: ERROR_OUT( "Kernel radius must be in range [0,4]: " , kernelRadius );
+					default: MK_ERROR_OUT( "Kernel radius must be in range [0,4]: " , kernelRadius );
 					}
 				}
 			}

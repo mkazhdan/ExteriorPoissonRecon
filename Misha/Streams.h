@@ -181,12 +181,12 @@ namespace MishaK
 			if( read && write ) _fp = fopen( fileName.c_str() , "rwb" );
 			else if( read  ) _fp = fopen( fileName.c_str() , "rb" );
 			else if( write ) _fp = fopen( fileName.c_str() , "wb" );
-			else ERROR_OUT( "File is not open for either reading or writing" );
+			else MK_ERROR_OUT( "File is not open for either reading or writing" );
 			if( !_fp )
 			{
-				if( read && write ) ERROR_OUT( "Failed to open file for reading/writing: " , fileName );
-				else if( read )  ERROR_OUT( "Failed to open file for reading: " , fileName );
-				else if( write ) ERROR_OUT( "Failed to open file for writing: " , fileName );
+				if( read && write ) MK_ERROR_OUT( "Failed to open file for reading/writing: " , fileName );
+				else if( read )  MK_ERROR_OUT( "Failed to open file for reading: " , fileName );
+				else if( write ) MK_ERROR_OUT( "Failed to open file for writing: " , fileName );
 			}
 		}
 		~FileStream( void ){ if( _closeOnDelete ) fclose(_fp); }

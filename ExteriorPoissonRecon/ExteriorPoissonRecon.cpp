@@ -153,7 +153,7 @@ int main( int argc , char* argv[] )
 
 	if     ( ValidSampleFile< 4 >( In.value ) ) Execute< 4 >( ReadSamples< 4 >( In.value ) );
 	else if( ValidSampleFile< 3 >( In.value ) ) Execute< 3 >( ReadSamples< 3 >( In.value ) );
-	else ERROR_OUT( "Invalid sample file" );
+	else MK_ERROR_OUT( "Invalid sample file" );
 
 	if( Verbose.set ) std::cout << pMeter( "Executed" ) << std::endl;
 
@@ -297,7 +297,7 @@ std::vector< std::pair< Point< double , Dim > , Hat::SkewSymmetricMatrix< double
 			hermiteData[i].second = Hat::SkewSymmetricMatrix< double , Dim >( vertices[i].template get<1>() );
 		}
 	}
-	else ERROR_OUT( "Only .ply files supported" );
+	else MK_ERROR_OUT( "Only .ply files supported" );
 
 	return hermiteData;
 }
@@ -307,6 +307,6 @@ bool ValidSampleFile( std::string fileName )
 {
 	VertexFactory::PositionFactory< double , Dim > pFactory;
 	int fileType;
-	std::vector< PlyProperty > plyProperties = PLY::ReadVertexHeader( fileName , fileType );
+	std::vector< GregTurk::PlyProperty > plyProperties = PLY::ReadVertexHeader( fileName , fileType );
 	return pFactory.plyValidReadProperties( plyProperties );
 }

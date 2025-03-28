@@ -264,7 +264,7 @@ namespace MishaK
 
 		double roots[3];
 		unsigned int rNum = Polynomial::Roots( dQ , roots );
-		if( !rNum ) ERROR_OUT( "Expected a root for an odd-degree polynomial" );
+		if( !rNum ) MK_ERROR_OUT( "Expected a root for an odd-degree polynomial" );
 		double s = roots[0];
 		for( unsigned int i=1 ; i<rNum ; i++ ) if( Q( roots[i] )<Q(s) ) s = roots[i];
 		return s;
@@ -294,7 +294,7 @@ namespace MishaK
 
 			double roots[3];
 			unsigned int rNum = Polynomial::Roots( dQ1 , roots );
-			if( !rNum ) ERROR_OUT( "Expected a root for an odd-degree polynomial: " , Q1 );
+			if( !rNum ) MK_ERROR_OUT( "Expected a root for an odd-degree polynomial: " , Q1 );
 			double s = roots[0];
 			for( unsigned int i=1 ; i<rNum ; i++ ) if( Q1( roots[i] )<Q1(s) ) s = roots[i];
 			c += d * s;
@@ -314,21 +314,21 @@ namespace MishaK
 	template< unsigned int Dim , typename Indexer >
 	Polynomial::Polynomial2D< 4 > SystemEnergy< Dim , Indexer >::biQuadraticFit( const Eigen::VectorXd & , const Eigen::VectorXd & , const Eigen::VectorXd & , const Eigen::VectorXd & ) const
 	{
-		ERROR_OUT( "Method not supported" );
+		MK_ERROR_OUT( "Method not supported" );
 		return Polynomial::Polynomial2D< 4 >();
 	}
 
 	template< unsigned int Dim , typename Indexer >
 	typename SystemEnergy< Dim , Indexer >::QuadraticApproximation SystemEnergy< Dim , Indexer >::quadraticApproximation1( const Eigen::VectorXd & , const Eigen::VectorXd & ) const
 	{
-		ERROR_OUT( "Method not supported" );
+		MK_ERROR_OUT( "Method not supported" );
 		return typename SystemEnergy< Dim , Indexer >::QuadraticApproximation();
 	}
 
 	template< unsigned int Dim , typename Indexer >
 	typename SystemEnergy< Dim , Indexer >::QuadraticApproximation SystemEnergy< Dim , Indexer >::quadraticApproximation2( const Eigen::VectorXd & , const Eigen::VectorXd & ) const
 	{
-		ERROR_OUT( "Method not supported" );
+		MK_ERROR_OUT( "Method not supported" );
 		return typename SystemEnergy< Dim , Indexer >::QuadraticApproximation();
 	}
 
@@ -466,7 +466,7 @@ namespace MishaK
 	{
 		static_assert( std::is_base_of_v< Hat::BaseProlongationIndexer< Dim > , Indexer > , "[ERROR] Indexer poorly formed" );
 
-		if( scalars.resolution()&1 ) ERROR_OUT( "Expected even resolution: " , scalars.resolution() );
+		if( scalars.resolution()&1 ) MK_ERROR_OUT( "Expected even resolution: " , scalars.resolution() );
 		SingleCycleCascadicSystemEnergy coarser( coarseProlongationIndexer , scalars.resolution() / 2 );
 		coarser._sP = coarser.scalars.prolongation( coarseProlongationIndexer , indexer.numFunctions() );
 		coarser._R = coarser._sP.transpose() * _R * coarser._sP;
@@ -479,8 +479,8 @@ namespace MishaK
 	template< unsigned int Dim , typename Indexer >
 	void SingleCycleCascadicSystemEnergy< Dim , Indexer >::update( const SingleCycleCascadicSystemEnergy &finer , const Eigen::VectorXd &x , const Eigen::VectorXd &y )
 	{
-		if( finer.scalars.resolution()!=scalars.resolution()*2 ) ERROR_OUT( "Resolutions don't match: " , finer.scalars.resolution() , " != 2 * " , scalars.resolution() );
-		if( !( x.isZero() && y.isZero() ) ) ERROR_OUT( "Non-trivial restriction not supported" );
+		if( finer.scalars.resolution()!=scalars.resolution()*2 ) MK_ERROR_OUT( "Resolutions don't match: " , finer.scalars.resolution() , " != 2 * " , scalars.resolution() );
+		if( !( x.isZero() && y.isZero() ) ) MK_ERROR_OUT( "Non-trivial restriction not supported" );
 	}
 
 	template< unsigned int Dim , typename Indexer >
@@ -673,7 +673,7 @@ namespace MishaK
 	template< unsigned int Dim , typename Indexer >
 	HierarchicalSystemEnergy< Dim , Indexer > HierarchicalSystemEnergy< Dim , Indexer >::restrict( const Indexer &coarseIndexer ) const
 	{
-		if( scalars.resolution()&1 ) ERROR_OUT( "Expected even resolution: " , scalars.resolution() );
+		if( scalars.resolution()&1 ) MK_ERROR_OUT( "Expected even resolution: " , scalars.resolution() );
 		HierarchicalSystemEnergy coarser( coarseIndexer , scalars.resolution() / 2 );
 		coarser._sP = coarser.scalars.prolongation();
 		coarser._R = coarser._sP.transpose() * _R * coarser._sP;
@@ -685,9 +685,9 @@ namespace MishaK
 	template< unsigned int Dim , typename Indexer >
 	void HierarchicalSystemEnergy< Dim , Indexer >::update( const HierarchicalSystemEnergy &finer , const Eigen::VectorXd &x , const Eigen::VectorXd &y )
 	{
-		if( finer.scalars.resolution()!=scalars.resolution()*2 ) ERROR_OUT( "Resolutions don't match: " , finer.scalars.resolution() , " != 2 * " , scalars.resolution() );
-		if( x.size()!=finer.indexer.numFunctions() ) ERROR_OUT( "Unexpected x resolution: " , x.size() , " != " , finer.indexer.numFunctions() );
-		if( y.size()!=finer.indexer.numFunctions() ) ERROR_OUT( "Unexpected y resolution: " , y.size() , " != " , finer.indexer.numFunctions() );
+		if( finer.scalars.resolution()!=scalars.resolution()*2 ) MK_ERROR_OUT( "Resolutions don't match: " , finer.scalars.resolution() , " != 2 * " , scalars.resolution() );
+		if( x.size()!=finer.indexer.numFunctions() ) MK_ERROR_OUT( "Unexpected x resolution: " , x.size() , " != " , finer.indexer.numFunctions() );
+		if( y.size()!=finer.indexer.numFunctions() ) MK_ERROR_OUT( "Unexpected y resolution: " , y.size() , " != " , finer.indexer.numFunctions() );
 
 		bool hasXY = !( x.isZero() && y.isZero() );
 		_initFromFiner = finer._initFromFiner || hasXY;

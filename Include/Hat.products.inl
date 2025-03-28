@@ -390,7 +390,7 @@ template< unsigned int Dim , bool Sym >
 Eigen::SparseMatrix< double > ProductFunctions< Dim , Sym >::product( const Eigen::VectorXd &x ) const
 {
 	ScalarFunctions< Dim > scalars( _r );
-	if( x.size()!=scalars.functionNum() ) ERROR_OUT( "Resolutions don't match: " , x.size() , " != " , scalars.functionNum() );
+	if( x.size()!=scalars.functionNum() ) MK_ERROR_OUT( "Resolutions don't match: " , x.size() , " != " , scalars.functionNum() );
 
 	std::vector< Eigen::Triplet< double > > _triplets;
 	_triplets.reserve( _matrixInfo.entries( true ) );
@@ -427,14 +427,14 @@ Eigen::SparseMatrix< double > ProductFunctions< Dim , Sym >::product( const Eige
 template< unsigned int Dim , bool Sym >
 Eigen::SparseMatrix< double > ProductFunctions< Dim , Sym >::prolongation( void ) const
 {
-	if( _r&1 ) ERROR_OUT( "Expected even resolution: " , _r );
+	if( _r&1 ) MK_ERROR_OUT( "Expected even resolution: " , _r );
 	ProductFunctions coarseProducts( _r>>1 );
 	ScalarFunctions< Dim > scalars( _r );
 	Eigen::SparseMatrix< double > sP = scalars.prolongation();
 
 #if 1
 	std::vector< Eigen::Triplet< double > > triplets;
-	ERROR_OUT( "Method not supported" );
+	MK_ERROR_OUT( "Method not supported" );
 #else
 	std::vector< Eigen::Triplet< double > > triplets;
 	ThreadPool::ParallelFor
@@ -530,7 +530,7 @@ Eigen::VectorXd ProductFunctions< Dim , Sym >::valueDual( const Eigen::VectorXd 
 										{
 											bool flip;
 											size_t _e = index( G1 , G2 , flip );
-											if( flip ) ERROR_OUT( "WTF!" );
+											if( flip ) MK_ERROR_OUT( "WTF!" );
 											dual[e] += xy[_e] * stencil( E , F1 , F2 , G1 , G2 );
 										}
 									};

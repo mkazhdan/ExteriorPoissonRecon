@@ -181,9 +181,9 @@ size_t ScalarFunctions< Dim >::MatrixInfo< Radius , Sym >::entry( Index< Dim > F
 {
 	const _Info &info = _info( StencilCaseTable< Radius >::IndexToCase( F1 , _res ) );
 	Index< Dim > I = F2 - F1 + _off;
-	if( !_infoRange.contains(I) ) ERROR_OUT( "Bad index pair: " , F1 , " : " , F2 );
+	if( !_infoRange.contains(I) ) MK_ERROR_OUT( "Bad index pair: " , F1 , " : " , F2 );
 	size_t e = info.stencil(I);
-	if( e==-1 ) ERROR_OUT( "No entry: " , F1 , " : " , F2 );
+	if( e==-1 ) MK_ERROR_OUT( "No entry: " , F1 , " : " , F2 );
 	return info.offset + StencilCaseTable< Radius >::SubIndex( F1 , _res ) * info.sizes[0] + e;
 }
 
@@ -199,7 +199,7 @@ void ScalarFunctions< Dim >::MatrixInfo< Radius , Sym >::process( Index< Dim > f
 		if( e!=-1 )
 		{
 			Index< Dim > f2 = f1 + I - _off;
-			if( !_fRange.contains( f2 ) ) ERROR_OUT( "should not be happening" );
+			if( !_fRange.contains( f2 ) ) MK_ERROR_OUT( "should not be happening" );
 			f( f2 , info.offset + StencilCaseTable< Radius >::SubIndex( f1 , _res ) * info.sizes[0] + e );
 		}
 	};
@@ -299,7 +299,7 @@ unsigned int ScalarFunctions< Dim >::FullIntegrationStencil< T , Radius >::Stenc
 	unsigned int idx=0;
 	for( unsigned int d=0 ; d<Dim ; d++ )
 	{
-		if( f[d]<0 || f[d]>(int)res ) ERROR_OUT( "Bad function index: " , f , " / " , res );
+		if( f[d]<0 || f[d]>(int)res ) MK_ERROR_OUT( "Bad function index: " , f , " / " , res );
 		if     ( f[d]<=(int)(    2*Radius) ) idx = idx*(3+4*Radius) + f[d];
 		else if( f[d]>=(int)(res-2*Radius) ) idx = idx*(3+4*Radius) + 2*Radius+2+f[d]-(res-2*Radius);
 		else                                 idx = idx*(3+4*Radius) + 2*Radius+1;
@@ -318,7 +318,7 @@ template< unsigned int Dim >
 template< typename T >
 typename ScalarFunctions< Dim >::template FullIntegrationStencil< T , 0 > ScalarFunctions< Dim >::Restrict( const FullIntegrationStencil< T , 0 > &stencilF )
 {
-	if( stencilF._res&1 ) ERROR_OUT( "Cannot restrict when reslution is odd" );
+	if( stencilF._res&1 ) MK_ERROR_OUT( "Cannot restrict when reslution is odd" );
 	FullIntegrationStencil< T , 0 > stencilC;
 	stencilC._res = stencilF._res/2;
 	stencilC._rows.resize( FullIntegrationStencil< T , 0 >::StencilNum() );
@@ -1097,7 +1097,7 @@ Eigen::SparseMatrix< double > ScalarFunctions< Dim >::boundaryMass( const Indexe
 {
 	if constexpr( Dim==0 )
 	{
-		ERROR_OUT( "Cannot compute boundary for dimension zero" );
+		MK_ERROR_OUT( "Cannot compute boundary for dimension zero" );
 		return Eigen::SparseMatrix< double >( indexer.numFunctions() , indexer.numFunctions() );
 	}
 	else
@@ -1113,7 +1113,7 @@ Eigen::SparseMatrix< double > ScalarFunctions< Dim >::boundaryStiffness( const I
 {
 	if constexpr( Dim==0 || Dim==1 )
 	{
-		ERROR_OUT( "Cannot compute boundary stiffness for dimension zero or one" );
+		MK_ERROR_OUT( "Cannot compute boundary stiffness for dimension zero or one" );
 		return Eigen::SparseMatrix< double >( indexer.numFunctions() , indexer.numFunctions() );
 	}
 	else
@@ -1401,11 +1401,11 @@ std::vector< Data > ScalarFunctions< Dim >::deltaDual( const Indexer &indexer , 
 		{
 			static const unsigned int NumBits = std::min< unsigned int >( ( sizeof(size_t)*8 ) / Dim , 16 );
 			static const size_t MaxRes = (size_t)1<<NumBits;
-			if( res>MaxRes ) ERROR_OUT( "Resolution too large: " , res , " >= " , MaxRes , " " , NumBits );
+			if( res>MaxRes ) MK_ERROR_OUT( "Resolution too large: " , res , " >= " , MaxRes , " " , NumBits );
 			Index< Dim > idx;
 			for( unsigned int d=0 ; d<Dim ; d++ )
 			{
-				if( position[d]<0 || position[d]>=1 ) ERROR_OUT( "Sample out bounds: " , p );
+				if( position[d]<0 || position[d]>=1 ) MK_ERROR_OUT( "Sample out bounds: " , p );
 				idx[d] = (unsigned int)floor( position[d] * res );
 			}
 			for( unsigned int i=0 ; i<NumBits ; i++ ) for( unsigned int d=0 ; d<Dim ; d++ ) index |= ( (idx[d]>>i)&1 ) << ( i*Dim + d );

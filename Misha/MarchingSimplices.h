@@ -141,7 +141,7 @@ namespace MishaK
 		{
 			if     ( v==0 ) return std::make_pair( MultiIndex< 1 , Index >( &si[1] ) , true  );
 			else if( v==1 ) return std::make_pair( MultiIndex< 1 , Index >( &si[0] ) , false );
-			else ERROR_OUT( "Bad index: " , v );
+			else MK_ERROR_OUT( "Bad index: " , v );
 			return std::pair< MultiIndex< 1 , Index > , bool >();
 		}
 
@@ -163,7 +163,7 @@ namespace MishaK
 			{
 				_Index _idx( &simplexIndices[i-1][0] );
 				auto iter = _map.find( _idx );
-				if( iter==_map.end() ) ERROR_OUT( "Could not find index" );
+				if( iter==_map.end() ) MK_ERROR_OUT( "Could not find index" );
 				if( counts[iter->second] )
 				{
 					simplexIndices[i-1] = simplexIndices.back();
@@ -200,10 +200,10 @@ namespace MishaK
 			{
 				std::pair< FaceIndex , bool > fInfo = OrientedFaceIndex( simplexIndices[i] , v );
 				auto iter = fMap.find( fInfo.first );
-				if( iter==fMap.end() ) ERROR_OUT( "Could not find edge" );
+				if( iter==fMap.end() ) MK_ERROR_OUT( "Could not find edge" );
 				if     ( fData[ iter->second ].s1==-1 ) fData[ iter->second ].s1 = i , fData[ iter->second ].oriented1 = fInfo.second;
 				else if( fData[ iter->second ].s2==-1 ) fData[ iter->second ].s2 = i , fData[ iter->second ].oriented2 = fInfo.second;
-				else ERROR_OUT( "Both faces occupied: " , iter->first , " -> " , simplexIndices[ fData[ iter->second ].s1 ] , " , " , simplexIndices[ fData[ iter->second ].s2 ] , " , " , simplexIndices[i] );
+				else MK_ERROR_OUT( "Both faces occupied: " , iter->first , " -> " , simplexIndices[ fData[ iter->second ].s1 ] , " , " , simplexIndices[ fData[ iter->second ].s2 ] , " , " , simplexIndices[i] );
 			}
 
 
@@ -230,7 +230,7 @@ namespace MishaK
 					{
 						FaceIndex faceIndex = OrientedFaceIndex( simplexIndices[s.first] , v ).first;
 						auto iter = fMap.find( faceIndex );
-						if( iter==fMap.end() ) ERROR_OUT( "Could not find face" );
+						if( iter==fMap.end() ) MK_ERROR_OUT( "Could not find face" );
 						Index _s = s.first==fData[ iter->second ].s1 ? fData[ iter->second ].s2 : fData[ iter->second ].s1;
 						if( _s==-1 || oriented[_s] ) continue;
 						oriented[_s] = true;
@@ -270,10 +270,10 @@ namespace MishaK
 			{
 				std::pair< FaceIndex , bool > fInfo = OrientedFaceIndex( simplexIndices[i] , v );
 				auto iter = fMap.find( fInfo.first );
-				if( iter==fMap.end() ) ERROR_OUT( "Could not find edge" );
+				if( iter==fMap.end() ) MK_ERROR_OUT( "Could not find edge" );
 				if     ( fData[ iter->second ].s1==-1 ) fData[ iter->second ].s1 = i , fData[ iter->second ].oriented1 = fInfo.second;
 				else if( fData[ iter->second ].s2==-1 ) fData[ iter->second ].s2 = i , fData[ iter->second ].oriented2 = fInfo.second;
-				else ERROR_OUT
+				else MK_ERROR_OUT
 				(
 					"Both faces occupied: " ,
 					iter->first , " -> " ,
@@ -303,10 +303,10 @@ namespace MishaK
 			{
 				FaceIndex fi = OrientedFaceIndex( simplexIndices[i] , v ).first;
 				typename FaceMap::iterator iter = fMap.find( fi );
-				if( iter==fMap.end() ) ERROR_OUT( "Could not find index for face" );
+				if( iter==fMap.end() ) MK_ERROR_OUT( "Could not find index for face" );
 				if     ( fData[ iter->second ].first ==-1 ) fData[ iter->second ].first  = i;
 				else if( fData[ iter->second ].second==-1 ) fData[ iter->second ].second = i;
-				else ERROR_OUT( "Face occuppied" );
+				else MK_ERROR_OUT( "Face occuppied" );
 			}
 
 
@@ -345,10 +345,10 @@ namespace MishaK
 					{
 						typename FaceMap::iterator iter = fMap.find( OrientedFaceIndex( simplexIndices[i] , v ).first );
 						size_t opposite;
-						if( iter==fMap.end() ) ERROR_OUT( "Could not find index for face" );
+						if( iter==fMap.end() ) MK_ERROR_OUT( "Could not find index for face" );
 						if     ( fData[ iter->second ].first ==i ) opposite = fData[ iter->second ].second;
 						else if( fData[ iter->second ].second==i ) opposite = fData[ iter->second ].first;
-						else ERROR_OUT( "Could not simplex in face" );
+						else MK_ERROR_OUT( "Could not simplex in face" );
 						if( opposite!=-1 && !processedSI[opposite] ) Q.push_back( opposite ) , processedSI[opposite] = true;
 					}
 				}
@@ -507,7 +507,7 @@ namespace MishaK
 					cValues[i] = ( PF( si[i] ) - isoValue )[0];
 					if( cValues[i]==0 )
 					{
-						WARN_ONCE( "Offsetting zero value: " , cValues[i] );
+						MK_WARN_ONCE( "Offsetting zero value: " , cValues[i] );
 						cValues[i] = EPS;
 					}
 				}

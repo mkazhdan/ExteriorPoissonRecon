@@ -149,8 +149,8 @@ ElementFunction< Dim >::ElementFunction( Index< Dim > e , Index< Dim > i )
 template< unsigned int Dim >
 ElementFunction< Dim > ElementFunction< Dim >::d( unsigned int d ) const
 {
-	if( _d[d] ) ERROR_OUT( "Cannot compute second derivative" );
-	if( _p[d] && _q[d] ) ERROR_OUT( "Derivative is not an ElementFunction" );
+	if( _d[d] ) MK_ERROR_OUT( "Cannot compute second derivative" );
+	if( _p[d] && _q[d] ) MK_ERROR_OUT( "Derivative is not an ElementFunction" );
 
 	ElementFunction< Dim > f = (*this);
 	if( _p[d] )

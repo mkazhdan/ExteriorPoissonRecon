@@ -92,10 +92,10 @@ void BaseIndexer< Dim >::unitTest( unsigned int res , unsigned int testNum , boo
 				size_t e = eNeighbors( &_I[0] );
 				if( InteriorElement( E ) )
 				{
-					if( e==-1 ) ERROR_OUT( "Active function should be supported: " , F , " , " , f , " -> " , E );
-					else if( elementIndex(e)!=E ) ERROR_OUT( "Element indices don't match: " , elementIndex(e) , " != " , E );
+					if( e==-1 ) MK_ERROR_OUT( "Active function should be supported: " , F , " , " , f , " -> " , E );
+					else if( elementIndex(e)!=E ) MK_ERROR_OUT( "Element indices don't match: " , elementIndex(e) , " != " , E );
 				}
-				else if( e!=-1 ) ERROR_OUT( "Expected empty element: " , F , " -> " , E , " : " , e );
+				else if( e!=-1 ) MK_ERROR_OUT( "Expected empty element: " , F , " -> " , E , " : " , e );
 			};
 		eRange.process( Kernel );
 	}
@@ -111,8 +111,8 @@ void BaseIndexer< Dim >::unitTest( unsigned int res , unsigned int testNum , boo
 			{
 				Index< Dim > _I = I , F = E + I;
 				size_t f = fNeighbors( &_I[0] );
-				if( f==-1 ) ERROR_OUT( "Element should be supported: " , E , " -> " , F );
-				else if( functionIndex(f)!=F ) ERROR_OUT( "Function indices don't match: " , functionIndex(f) , " != " , F );
+				if( f==-1 ) MK_ERROR_OUT( "Element should be supported: " , E , " -> " , F );
+				else if( functionIndex(f)!=F ) MK_ERROR_OUT( "Function indices don't match: " , functionIndex(f) , " != " , F );
 			};
 		fRange.process( Kernel );
 	}
@@ -367,7 +367,7 @@ HierarchicalAdaptedIndexer< Dim >::HierarchicalAdaptedIndexer( size_t sampleNum 
 	case 3: _addSamples< 3 >( sampleNum , std::forward< SampleFunctor >( Samples ) , maxDepth ) ; break;
 	case 4: _addSamples< 4 >( sampleNum , std::forward< SampleFunctor >( Samples ) , maxDepth ) ; break;
 	case 5: _addSamples< 5 >( sampleNum , std::forward< SampleFunctor >( Samples ) , maxDepth ) ; break;
-	default: ERROR_OUT( "Only kernel radius in the range [0,5] supported: " , kernelRadius );
+	default: MK_ERROR_OUT( "Only kernel radius in the range [0,5] supported: " , kernelRadius );
 	}
 
 	_finalize( maxDepth );
@@ -525,7 +525,7 @@ Window::IsotropicStaticWindow< size_t , Dim , 2 > HierarchicalAdaptedIndexer< Di
 	const Node *node = _spaceRoot->getNode( p , depth );
 	if( !node )
 	{
-		WARN( "Could not find point @ depth: " , p , " @ " , depth );
+		MK_WARN( "Could not find point @ depth: " , p , " @ " , depth );
 		for( unsigned int i=0 ; i<Window::template IsotropicSize< Dim , 2 >() ; i++ ) neighbors.data[i] = -1;
 	}
 	else

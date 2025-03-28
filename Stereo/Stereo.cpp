@@ -140,7 +140,7 @@ int main( int argc , char* argv[] )
 		{
 			unsigned int dir = -1;
 			for( unsigned int d=0 ; d<Dim ; d++ ) if( frame[0][d] ) dir=d;
-			if( dir==-1 ) ERROR_OUT( "Could not determine direction" );
+			if( dir==-1 ) MK_ERROR_OUT( "Could not determine direction" );
 			for( unsigned int d=1 ; d<Dim ; d++ ) frame[d][(dir+d)%Dim] = 1;
 		}
 		else
@@ -171,7 +171,7 @@ int main( int argc , char* argv[] )
 			}
 		}
 	}
-	else ERROR_OUT( "Vanishing stereographic axis: " , stereographicAxis );
+	else MK_ERROR_OUT( "Vanishing stereographic axis: " , stereographicAxis );
 
 
 	return EXIT_SUCCESS;

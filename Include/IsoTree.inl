@@ -87,8 +87,8 @@ Point< double , CoDim > IsoTree< Dim , CoDim >::value( Point< double , Dim > p ,
 	Point< double , CoDim > value;
 
 	const Node *eNode = _spaceRoot->getLeafNode( p );
-	if( !eNode->nodeData.validElement ) ERROR_OUT( "Leaf node is not a valid element node: " , eNode->nodeData.validElement , " : " , eNode->depth() , " @ " , eNode->offset() );
-	if( forceMaxDepth && eNode->depth()!=_maxDepth ) ERROR_OUT( "Leaf node not at max depth: " , eNode->depth() , " / " , _maxDepth , " : " , eNode->offset() );
+	if( !eNode->nodeData.validElement ) MK_ERROR_OUT( "Leaf node is not a valid element node: " , eNode->nodeData.validElement , " : " , eNode->depth() , " @ " , eNode->offset() );
+	if( forceMaxDepth && eNode->depth()!=_maxDepth ) MK_ERROR_OUT( "Leaf node not at max depth: " , eNode->depth() , " / " , _maxDepth , " : " , eNode->offset() );
 
 	unsigned int res = 1<<( eNode->depth()-1 );
 
@@ -117,8 +117,8 @@ Point< Point< double , Dim > , CoDim , double > IsoTree< Dim , CoDim >::gradient
 	Point< Point< double , Dim > , CoDim , double > grad;
 
 	const Node *eNode = _spaceRoot->getLeafNode( p );
-	if( !eNode->nodeData.validElement ) ERROR_OUT( "Leaf node is not a valid element node: " , eNode->nodeData.validElement , " : " , eNode->depth() , " @ " , eNode->offset() );
-	if( forceMaxDepth && eNode->depth()!=_maxDepth ) ERROR_OUT( "Leaf node not at max depth: " , eNode->depth() , " / " , _maxDepth , " : " , eNode->offset() );
+	if( !eNode->nodeData.validElement ) MK_ERROR_OUT( "Leaf node is not a valid element node: " , eNode->nodeData.validElement , " : " , eNode->depth() , " @ " , eNode->offset() );
+	if( forceMaxDepth && eNode->depth()!=_maxDepth ) MK_ERROR_OUT( "Leaf node not at max depth: " , eNode->depth() , " / " , _maxDepth , " : " , eNode->offset() );
 
 	unsigned int res = 1<<( eNode->depth()-1 );
 
@@ -270,7 +270,7 @@ Window::IsotropicStaticWindow< typename IsoTree< Dim , CoDim >::Node * , Dim , 3
 template< unsigned int Dim , unsigned int CoDim >
 Window::IsotropicStaticWindow< Point< double , CoDim > , Dim , 2 > IsoTree< Dim , CoDim >::elementValues( const Node * node , unsigned int thread ) const
 {
-	if( !node || !node->nodeData.validElement ) THROW( "Expected valid element node" );
+	if( !node || !node->nodeData.validElement ) MK_WARN( "Expected valid element node" );
 
 	Window::IsotropicStaticWindow< Point< double , CoDim > , Dim , 2 > eValues;
 	ConstElementFunctionNeighborKey &efKey = const_cast< ConstElementFunctionNeighborKey & >( _efKeys[thread] );

@@ -413,7 +413,7 @@ namespace MishaK
 				SphereHelixSampler( unsigned int r ) : _r(r) {}
 				std::pair< Point< double , 3 > , Hat::SkewSymmetricMatrix< double , 3 > > operator()( double s ) const
 				{
-					WARN_ONCE( "Not an arc-length parameterization" );
+					MK_WARN_ONCE( "Not an arc-length parameterization" );
 					static const double X = M_PI * _r / 2.;
 					AutoDiff::Identity< ParameterPack::UIntPack<> > _S;
 					auto S = _S * 2. * M_PI - M_PI/2;
@@ -662,7 +662,7 @@ namespace MishaK
 			{
 				std::istringstream ss( Descriptions[type] );
 				std::string header;
-				if( !std::getline( ss , header , ':' ) ) ERROR_OUT( "Could not read header: " , Descriptions[type] );
+				if( !std::getline( ss , header , ':' ) ) MK_ERROR_OUT( "Could not read header: " , Descriptions[type] );
 				return header;
 			};
 
@@ -673,7 +673,7 @@ namespace MishaK
 
 				std::istringstream ss( str );
 				std::string header;
-				if( !std::getline( ss , header , ':' ) ) ERROR_OUT( "Could not read header: " , str );
+				if( !std::getline( ss , header , ':' ) ) MK_ERROR_OUT( "Could not read header: " , str );
 
 				if     ( header==Header(LINE_SEGMENT)      ) sampler = new LineSegmentSampler();
 				else if( header==Header(CIRCLE)            ) sampler = new CircleSampler();
@@ -683,37 +683,37 @@ namespace MishaK
 				else if( header==Header(SPIRAL) )
 				{
 					std::string r;
-					if( !std::getline( ss , r , ':' ) ) ERROR_OUT( "Could not read spiral rotations: " , str );
+					if( !std::getline( ss , r , ':' ) ) MK_ERROR_OUT( "Could not read spiral rotations: " , str );
 					sampler = new SpiralSampler( std::stoi( r ) );
 				}
 				else if( header==Header(SPHERE_HELIX) )
 				{
 					std::string r;
-					if( !std::getline( ss , r , ':' ) ) ERROR_OUT( "Could not read sphere helix rotations: " , str );
+					if( !std::getline( ss , r , ':' ) ) MK_ERROR_OUT( "Could not read sphere helix rotations: " , str );
 					sampler = new SphereHelixSampler( std::stoi( r ) );
 				}
 				else if( header==Header(TORUS_KNOT) )
 				{
 					std::string p , q;
-					if( !std::getline( ss , p , ':' ) ) ERROR_OUT( "Could not read torus knot p: " , str );
-					if( !std::getline( ss , q , ':' ) ) ERROR_OUT( "Could not read torus knot q: " , str );
+					if( !std::getline( ss , p , ':' ) ) MK_ERROR_OUT( "Could not read torus knot p: " , str );
+					if( !std::getline( ss , q , ':' ) ) MK_ERROR_OUT( "Could not read torus knot q: " , str );
 					sampler = new TorusKnotSampler( std::stoi(p) , std::stoi(q) );
 				}
 				else if( header==Header(BI_TORUS_KNOT) )
 				{
 					std::string op , oq , ip , iq;
-					if( !std::getline( ss , op , ':' ) ) ERROR_OUT( "Could not read bi torus knot op: " , str );
-					if( !std::getline( ss , oq , ':' ) ) ERROR_OUT( "Could not read bi torus knot oq: " , str );
-					if( !std::getline( ss , ip , ':' ) ) ERROR_OUT( "Could not read bi torus knot ip: " , str );
-					if( !std::getline( ss , iq , ':' ) ) ERROR_OUT( "Could not read bi torus knot iq: " , str );
+					if( !std::getline( ss , op , ':' ) ) MK_ERROR_OUT( "Could not read bi torus knot op: " , str );
+					if( !std::getline( ss , oq , ':' ) ) MK_ERROR_OUT( "Could not read bi torus knot oq: " , str );
+					if( !std::getline( ss , ip , ':' ) ) MK_ERROR_OUT( "Could not read bi torus knot ip: " , str );
+					if( !std::getline( ss , iq , ':' ) ) MK_ERROR_OUT( "Could not read bi torus knot iq: " , str );
 					sampler = new BiTorusKnotSampler( std::stoi(op) , std::stoi(oq) , std::stoi(ip) , std::stoi(iq) );
 				}
 				else if( header==Header(SPHERICAL_CURVE) )
 				{
 					std::string type , n , l;
-					if( !std::getline( ss , type , ':' ) ) ERROR_OUT( "Could not read spherical curve type: " , str );
-					if( !std::getline( ss , n    , ':' ) ) ERROR_OUT( "Could not read spherical curve n: " , str );
-					if( !std::getline( ss , l    , ':' ) ) ERROR_OUT( "Could not read spherical curve l: " , str );
+					if( !std::getline( ss , type , ':' ) ) MK_ERROR_OUT( "Could not read spherical curve type: " , str );
+					if( !std::getline( ss , n    , ':' ) ) MK_ERROR_OUT( "Could not read spherical curve n: " , str );
+					if( !std::getline( ss , l    , ':' ) ) MK_ERROR_OUT( "Could not read spherical curve l: " , str );
 					sampler = new SphericalCurveSampler( std::stoi(type) , std::stoi(n) , std::stod(l) );
 				}
 				return sampler;
@@ -1212,7 +1212,7 @@ namespace MishaK
 			{
 				std::istringstream ss( Descriptions[type] );
 				std::string header;
-				if( !std::getline( ss , header , ':' ) ) ERROR_OUT( "Could not read header: " , Descriptions[type] );
+				if( !std::getline( ss , header , ':' ) ) MK_ERROR_OUT( "Could not read header: " , Descriptions[type] );
 				return header;
 			};
 
@@ -1222,20 +1222,20 @@ namespace MishaK
 
 				std::istringstream ss( str );
 				std::string header;
-				if( !std::getline( ss , header , ':' ) ) ERROR_OUT( "Could not read header: " , str );
+				if( !std::getline( ss , header , ':' ) ) MK_ERROR_OUT( "Could not read header: " , str );
 				if     ( header==Header(CLIFFORD_TORUS) ) sampler = new CliffordTorusSampler();
 				else if( header==Header(MOBIUS_TUBE)    ) sampler = new MobiusTubeSampler();
 				else if( header==Header(HELIX_SURFACE)  ) 
 				{
 					std::string type, d;
-					if ( !std::getline(ss, type, ':') ) ERROR_OUT("Could not read helix sufrace type: ", str);
-					if ( !std::getline(ss,    d, ':') ) ERROR_OUT("Could not read helix sufrace param: ", str);
+					if ( !std::getline(ss, type, ':') ) MK_ERROR_OUT("Could not read helix sufrace type: ", str);
+					if ( !std::getline(ss,    d, ':') ) MK_ERROR_OUT("Could not read helix sufrace param: ", str);
 					sampler = new HelixSurfaceSampler( std::stoi(type) , std::stod(d) );
 				}
 				else if (header == Header(HOPF_TORUS) ){
 					std::string n, l;
-					if (!std::getline(ss, n, ':')) ERROR_OUT("Could not read Hopf torus n: ", str);
-					if (!std::getline(ss, l, ':')) ERROR_OUT("Could not read Hopf torus l: ", str);
+					if (!std::getline(ss, n, ':')) MK_ERROR_OUT("Could not read Hopf torus n: ", str);
+					if (!std::getline(ss, l, ':')) MK_ERROR_OUT("Could not read Hopf torus l: ", str);
 					sampler = new HopfTorusSampler( std::stoi(n) , std::stod(l) );
 				}
 				return sampler;
@@ -1245,35 +1245,35 @@ namespace MishaK
 			{
 				std::istringstream ss( str );
 				std::string header;
-				if( !std::getline( ss , header , ':' ) ) ERROR_OUT( "Could not read header: " , str );
+				if( !std::getline( ss , header , ':' ) ) MK_ERROR_OUT( "Could not read header: " , str );
 				if     ( header==Header(CLIFFORD_TORUS) ) return true;
 				else if( header==Header(MOBIUS_TUBE)    ) return true;
 				else if( header==Header(HELIX_SURFACE)  ) 
 				{
 					std::string type, d;
-					if ( !std::getline(ss, type, ':') ) ERROR_OUT("Could not read helix sufrace type: ", str);
-					if ( !std::getline(ss,    d, ':') ) ERROR_OUT("Could not read helix sufrace param: ", str);
+					if ( !std::getline(ss, type, ':') ) MK_ERROR_OUT("Could not read helix sufrace type: ", str);
+					if ( !std::getline(ss,    d, ':') ) MK_ERROR_OUT("Could not read helix sufrace param: ", str);
 					return true;
 				}
 				else if (header == Header(LAWSON_SURFACE))
 				{
 					std::string m, k;
-					if ( !std::getline(ss, m, ':') ) ERROR_OUT("Could not read Lawson sufrace m: ", str);
-					if ( !std::getline(ss, k, ':') ) ERROR_OUT("Could not read Lawson sufrace k: ", str);
+					if ( !std::getline(ss, m, ':') ) MK_ERROR_OUT("Could not read Lawson sufrace m: ", str);
+					if ( !std::getline(ss, k, ':') ) MK_ERROR_OUT("Could not read Lawson sufrace k: ", str);
 					return true;
 				}
 				else if (header == Header(HOPF_TORUS) ){
 					std::string type, n, l;
-					if (!std::getline(ss, type, ':')) ERROR_OUT("Could not read Hopf type n: ", str);
-					if (!std::getline(ss, n, ':')) ERROR_OUT("Could not read Hopf torus n: ", str);
-					if (!std::getline(ss, l, ':')) ERROR_OUT("Could not read Hopf torus l: ", str);
+					if (!std::getline(ss, type, ':')) MK_ERROR_OUT("Could not read Hopf type n: ", str);
+					if (!std::getline(ss, n, ':')) MK_ERROR_OUT("Could not read Hopf torus n: ", str);
+					if (!std::getline(ss, l, ':')) MK_ERROR_OUT("Could not read Hopf torus l: ", str);
 					return true;
 				}
 				else if( header==Header(KY)  ) 
 				{
 					std::string m, xi;
-					if ( !std::getline(ss, m, ':') ) ERROR_OUT("Could not read ky surface m: ", str);
-					if ( !std::getline(ss, xi, ':') ) ERROR_OUT("Could not read ky surface xi: ", str);
+					if ( !std::getline(ss, m, ':') ) MK_ERROR_OUT("Could not read ky surface m: ", str);
+					if ( !std::getline(ss, xi, ':') ) MK_ERROR_OUT("Could not read ky surface xi: ", str);
 					return true;
 				}
 				else return false;
@@ -1287,21 +1287,21 @@ namespace MishaK
 
 				std::istringstream ss( str );
 				std::string header;
-				if( !std::getline( ss , header , ':' ) ) ERROR_OUT( "Could not read header: " , str );
+				if( !std::getline( ss , header , ':' ) ) MK_ERROR_OUT( "Could not read header: " , str );
 				if     ( header==Header(CLIFFORD_TORUS) ) sampler = new CliffordTorusSampler();
 				else if( header==Header(MOBIUS_TUBE)    ) sampler = new MobiusTubeSampler();
 				else if( header==Header(HELIX_SURFACE)  ) 
 				{
 					std::string type, d;
-					if ( !std::getline(ss, type, ':') ) ERROR_OUT("Could not read helix sufrace type: ", str);
-					if ( !std::getline(ss,    d, ':') ) ERROR_OUT("Could not read helix sufrace param: ", str);
+					if ( !std::getline(ss, type, ':') ) MK_ERROR_OUT("Could not read helix surface type: ", str);
+					if ( !std::getline(ss,    d, ':') ) MK_ERROR_OUT("Could not read helix surface param: ", str);
 					sampler = new HelixSurfaceSampler( std::stoi(type) , std::stod(d) );
 				}
 				else if (header == Header(LAWSON_SURFACE))
 				{
 					std::string m, k;
-					if ( !std::getline(ss, m, ':') ) ERROR_OUT("Could not read Lawson sufrace m: ", str);
-					if ( !std::getline(ss, k, ':') ) ERROR_OUT("Could not read Lawson sufrace k: ", str);
+					if ( !std::getline(ss, m, ':') ) MK_ERROR_OUT("Could not read Lawson sufrace m: ", str);
+					if ( !std::getline(ss, k, ':') ) MK_ERROR_OUT("Could not read Lawson sufrace k: ", str);
 					unsigned int _m = std::stoi(m), _k = std::stoi(k);
 
 					// ref: https://math.jhu.edu/~js/Math748/lawson.s3.pdf
@@ -1324,15 +1324,15 @@ namespace MishaK
 				}
 				else if (header == Header(HOPF_TORUS) ){
 					std::string n , l;
-					if (!std::getline(ss, n, ':')) ERROR_OUT("Could not read Hopf torus n: ", str);
-					if (!std::getline(ss, l, ':')) ERROR_OUT("Could not read Hopf torus l: ", str);
+					if (!std::getline(ss, n, ':')) MK_ERROR_OUT("Could not read Hopf torus n: ", str);
+					if (!std::getline(ss, l, ':')) MK_ERROR_OUT("Could not read Hopf torus l: ", str);
 					sampler = new HopfTorusSampler( std::stoi(n) , std::stod(l) );
 				}
 				else if( header==Header(KY)  ) 
 				{
 					std::string m, xi;
-					if ( !std::getline(ss, m, ':') ) ERROR_OUT("Could not read ky surface m: ", str);
-					if ( !std::getline(ss, xi, ':') ) ERROR_OUT("Could not read ky surface xi: ", str);
+					if ( !std::getline(ss, m, ':') ) MK_ERROR_OUT("Could not read ky surface m: ", str);
+					if ( !std::getline(ss, xi, ':') ) MK_ERROR_OUT("Could not read ky surface xi: ", str);
 					sampler = new KYSampler( std::stoi(m) , std::stod(xi) );
 					samples.clear();
 					samples.reserve(count * count);

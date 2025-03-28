@@ -27,19 +27,27 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misha", "Misha", "{B00E01A4-438D-4163-96AF-C8915B0D4F8F}"
 	ProjectSection(SolutionItems) = preProject
 		Misha\Algebra.h = Misha\Algebra.h
+		Misha\Allocator.h = Misha\Allocator.h
 		Misha\Array.h = Misha\Array.h
 		Misha\Array.inl = Misha\Array.inl
+		Misha\Atomic.h = Misha\Atomic.h
+		Misha\BinaryNode.h = Misha\BinaryNode.h
 		Misha\CmdLineParser.h = Misha\CmdLineParser.h
 		Misha\CmdLineParser.inl = Misha\CmdLineParser.inl
+		Misha\EigenStreams.h = Misha\EigenStreams.h
 		Misha\Exceptions.h = Misha\Exceptions.h
 		Misha\Geometry.h = Misha\Geometry.h
 		Misha\Geometry.inl = Misha\Geometry.inl
+		Misha\HyperCubeSimplices.h = Misha\HyperCubeSimplices.h
 		Misha\IsoSurface3D.h = Misha\IsoSurface3D.h
 		Misha\IsoSurface3D.inl = Misha\IsoSurface3D.inl
 		Misha\MarchingCubes.h = Misha\MarchingCubes.h
 		Misha\MarchingCubes.inl = Misha\MarchingCubes.inl
 		Misha\MarchingSimplices.h = Misha\MarchingSimplices.h
 		Misha\Miscellany.h = Misha\Miscellany.h
+		Misha\MultiDimensionalArray.h = Misha\MultiDimensionalArray.h
+		Misha\MultiThreading.h = Misha\MultiThreading.h
+		Misha\ParameterPack.h = Misha\ParameterPack.h
 		Misha\Ply.h = Misha\Ply.h
 		Misha\Ply.inl = Misha\Ply.inl
 		Misha\PlyFile.h = Misha\PlyFile.h
@@ -52,6 +60,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misha", "Misha", "{B00E01A4
 		Misha\Polynomial.inl = Misha\Polynomial.inl
 		Misha\RegularGrid.h = Misha\RegularGrid.h
 		Misha\RegularGrid.inl = Misha\RegularGrid.inl
+		Misha\RegularTree.h = Misha\RegularTree.h
+		Misha\RegularTree.inl = Misha\RegularTree.inl
+		Misha\Streams.h = Misha\Streams.h
+		Misha\Window.h = Misha\Window.h
+		Misha\Window.inl = Misha\Window.inl
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExteriorPoissonRecon", "ExteriorPoissonRecon\ExteriorPoissonRecon.vcxproj", "{7AA5AA67-17FF-4712-8C8B-78C95A3FA369}"
@@ -62,9 +75,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Autodiff", "Autodiff", "{36
 	ProjectSection(SolutionItems) = preProject
 		Misha\AutoDiff\AutoDiff.h = Misha\AutoDiff\AutoDiff.h
 		Misha\AutoDiff\AutoDiff.Transcendental.inc = Misha\AutoDiff\AutoDiff.Transcendental.inc
-		Misha\AutoDiff\MultiDimensionalArray.h = Misha\AutoDiff\MultiDimensionalArray.h
 		Misha\AutoDiff\Tensors.h = Misha\AutoDiff\Tensors.h
-		Misha\AutoDiff\UIntPack.h = Misha\AutoDiff\UIntPack.h
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stereo", "..\..\..\Users\mkazh\OneDrive - Johns Hopkins\Research\ExteriorPoissonRecon\4Release\Stereo\Stereo.vcxproj", "{5BD9AB44-3886-4F83-9057-3920C848A886}"

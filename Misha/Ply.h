@@ -57,16 +57,16 @@ namespace MishaK
 			unsigned int nr_vertices;
 			Index *vertices;
 
-			static PlyProperty Properties[];
+			static GregTurk::PlyProperty Properties[];
 		};
 
 		int DefaultFileType( void );
 
 		// PLY read functionality
-		int ReadHeader( std::string fileName , const PlyProperty *properties , int propertyNum , bool *readFlags );
+		int ReadHeader( std::string fileName , const GregTurk::PlyProperty *properties , int propertyNum , bool *readFlags );
 
-		std::vector< PlyProperty > ReadVertexHeader( std::string fileName );
-		std::vector< PlyProperty > ReadVertexHeader( std::string fileName , int &file_type );
+		std::vector< GregTurk::PlyProperty > ReadVertexHeader( std::string fileName );
+		std::vector< GregTurk::PlyProperty > ReadVertexHeader( std::string fileName , int &file_type );
 
 		template< typename VertexFactory , typename Index >
 		int Read( std::string fileName , const VertexFactory &vFactory , std::vector< typename VertexFactory::VertexType > &vertices , std::vector< std::pair< Index , Index > > *edges , std::vector< std::vector< Index > > *polygons , bool *vertexPropertiesFlag=nullptr , std::vector< std::string > *comments=nullptr );
@@ -84,7 +84,7 @@ namespace MishaK
 		int ReadPolygons( std::string fileName , const VertexFactory &vFactory , std::vector< typename VertexFactory::VertexType > &vertices , std::vector< std::vector< Index > > &polygons ,  bool *readFlags=nullptr , std::vector< std::string > *comments=nullptr );
 
 		template< typename VertexFactory , typename Polygon >
-		int ReadPolygons( std::string fileName , const VertexFactory &vFactory , std::vector< typename VertexFactory::VertexType >& vertices , std::vector< Polygon >& polygons , PlyProperty *polygonProperties , int polygonPropertyNum , bool *vertexPropertiesFlag=nullptr , bool *polygonPropertiesFlag=nullptr , std::vector< std::string > *comments=nullptr );
+		int ReadPolygons( std::string fileName , const VertexFactory &vFactory , std::vector< typename VertexFactory::VertexType >& vertices , std::vector< Polygon >& polygons , GregTurk::PlyProperty *polygonProperties , int polygonPropertyNum , bool *vertexPropertiesFlag=nullptr , bool *polygonPropertiesFlag=nullptr , std::vector< std::string > *comments=nullptr );
 
 		template< typename VertexFactory , typename Index >
 		int ReadTetrahedra( std::string fileName , const VertexFactory &vFactory , std::vector< typename VertexFactory::VertexType > &vertices , std::vector< SimplexIndex< 3 , Index > > &tetrahedra , bool *vertexPropertiesFlag=nullptr , std::vector< std::string > *comments=nullptr );
@@ -106,7 +106,7 @@ namespace MishaK
 		void WritePolygons( std::string fileName , const VertexFactory &vFactory , const std::vector< typename VertexFactory::VertexType > &vertices , const std::vector< std::vector< Index > > &polygons , int file_type , const std::vector< std::string > *comments=NULL );
 
 		template< class VertexFactory , typename Polygon >
-		void WritePolygons( std::string fileName , const VertexFactory &vFactory , const std::vector< typename VertexFactory::VertexType > &vertices , const std::vector< Polygon > &polygons , PlyProperty* polygonProperties , int polygonPropertyNum , int file_type , const std::vector< std::string > *comments=NULL );
+		void WritePolygons( std::string fileName , const VertexFactory &vFactory , const std::vector< typename VertexFactory::VertexType > &vertices , const std::vector< Polygon > &polygons , GregTurk::PlyProperty* polygonProperties , int polygonPropertyNum , int file_type , const std::vector< std::string > *comments=NULL );
 
 		template< typename VertexFactory , typename Index >
 		void WriteTetrahedra( std::string fileName , const VertexFactory &vFactory , const std::vector< typename VertexFactory::VertexType > &vertices , const std::vector< SimplexIndex< 3 , Index > > &tetrahedra , int file_type , const std::vector< std::string > *comments=NULL );

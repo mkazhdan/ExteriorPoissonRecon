@@ -109,7 +109,7 @@ int main( int argc , char* argv[] )
 
 		for( unsigned int i=0 ; i<edges.size() ; i++ )
 		{
-			if( edges[i].size()!=Dim-CoDim+1 ) ERROR_OUT( "Expected edge: " , edges[i].size() );
+			if( edges[i].size()!=Dim-CoDim+1 ) MK_ERROR_OUT( "Expected edge: " , edges[i].size() );
 			for( unsigned int j=0 ; j<Dim-CoDim+1 ; j++ ) levelSet.simplexIndices[i][j] = edges[i][j];
 		}
 	}

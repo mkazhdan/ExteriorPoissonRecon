@@ -72,7 +72,7 @@ namespace MishaK
 {
 	namespace Miscellany
 	{
-		std::pair< double , double > AverageAndStandardDeviation( const double * values , unsigned int N )
+		inline std::pair< double , double > AverageAndStandardDeviation( const double * values , unsigned int N )
 		{
 			std::pair< double , double > ad( 0. , 0. );
 			for( unsigned int i=0 ; i<N ; i++ ) ad.first += values[i];
@@ -108,7 +108,7 @@ namespace MishaK
 		// HSVtoRGB //
 		//////////////
 		// hsv \in [0,2\pi)] x [0,1] x [0,1]
-		void HSVtoRGB( const double hsv[3] , double rgb[3] )
+		inline void HSVtoRGB( const double hsv[3] , double rgb[3] )
 		{
 			// From FvD
 			if( hsv[1]<=0.0 ) rgb[0] = rgb[1] = rgb[2] = hsv[2];
@@ -219,7 +219,7 @@ namespace MishaK
 				{
 #if _WIN32 || _WIN64
 					FILE *fp;
-					if( fopen_s( &fp , outputFile , "a" ) ) ERROR_OUT( "Failed to open file for appending: " , outputFile );
+					if( fopen_s( &fp , outputFile , "a" ) ) MK_ERROR_OUT( "Failed to open file for appending: " , outputFile );
 #else // !_WIN32 && !_WIN64
 					FILE *fp = fopen( outputFile , "a" );
 #endif // _WIN32 || _WIN64
@@ -243,7 +243,7 @@ namespace MishaK
 				{
 #if _WIN32 || _WIN64
 					FILE *fp;
-					if( fopen_s( &fp , outputFile , "a" ) ) ERROR_OUT( "Failed to open file for appending: " , outputFile );
+					if( fopen_s( &fp , outputFile , "a" ) ) MK_ERROR_OUT( "Failed to open file for appending: " , outputFile );
 #else // !_WIN32 && !_WIN64
 					FILE *fp = fopen( outputFile , "a" );
 #endif // _WIN32 || _WIN64
@@ -412,7 +412,7 @@ namespace MishaK
 
 		struct PerformanceMeter
 		{
-			static unsigned int Width;
+			inline static unsigned int Width = 30;
 
 			PerformanceMeter( char pad=' ' , unsigned int precision=2 ) : _depth( _Depth++ ) , _precision(precision) , _pad(pad) {}
 			~PerformanceMeter( void ){ _Depth--; }
@@ -466,11 +466,8 @@ namespace MishaK
 			Timer _timer;
 			char _pad;
 			unsigned int _depth , _precision;
-			static unsigned int _Depth;
-
+			inline static unsigned int _Depth = 1;
 		};
-		unsigned int PerformanceMeter::_Depth = 1;
-		unsigned int PerformanceMeter::Width = 30;
 	}
 }
 #endif // MISCELLANY_INCLUDED

@@ -550,7 +550,7 @@ namespace MishaK
 		template< unsigned int ... OutDims , unsigned int ... InDims >
 		Linear< ParameterPack::UIntPack< OutDims ... > , ParameterPack::UIntPack< InDims ... > >::Linear( std::initializer_list< unsigned int > out , std::initializer_list< unsigned int > in )
 		{
-			if( out.size()!=sizeof...(OutDims) || in.size()!=sizeof...(InDims) ) ERROR_OUT( "Output dimensions don't match" );
+			if( out.size()!=sizeof...(OutDims) || in.size()!=sizeof...(InDims) ) MK_ERROR_OUT( "Output dimensions don't match" );
 			if constexpr( sizeof...(OutDims)+sizeof...(InDims)==0 ) _l = 1.;
 			else
 			{

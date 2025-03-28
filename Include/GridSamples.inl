@@ -152,10 +152,10 @@ template< typename DataType , typename SampleFunctor /* = std::function< std::pa
 void Splatter< Dim >::SplatSamples( unsigned int bSplineDegree , RegularGrid< Dim , DataType > &g , SampleFunctor F , size_t sampleNum , bool unitKernel )
 {
 	unsigned int res = g.res(0)-1;
-	for( unsigned int d=1 ; d<Dim ; d++ ) if( g.res(d)-1!=res ) ERROR_OUT( "Not a cubical grid" );
+	for( unsigned int d=1 ; d<Dim ; d++ ) if( g.res(d)-1!=res ) MK_ERROR_OUT( "Not a cubical grid" );
 	unsigned int depth = 0;
 	while( (1u<<depth)<res ) depth++;
-	if( res!=(1<<depth) ) ERROR_OUT( "Resolution is not a power of two: " , res );
+	if( res!=(1<<depth) ) MK_ERROR_OUT( "Resolution is not a power of two: " , res );
 
 	Splatter splatter( depth , bSplineDegree , unitKernel );
 	for( unsigned int s=0 ; s<sampleNum ; s++ ) splatter( g() , F(s) );
@@ -166,10 +166,10 @@ template< typename DataType , typename SampleFunctor /* = std::function< std::pa
 void Splatter< Dim >::SplatSamples_parallel( unsigned int bSplineDegree , RegularGrid< Dim , DataType > &g , SampleFunctor F , size_t sampleNum , DataType zeroValue , bool unitKernel )
 {
 	unsigned int res = g.res(0)-1;
-	for( unsigned int d=1 ; d<Dim ; d++ ) if( g.res(d)-1!=res ) ERROR_OUT( "Not a cubical grid" );
+	for( unsigned int d=1 ; d<Dim ; d++ ) if( g.res(d)-1!=res ) MK_ERROR_OUT( "Not a cubical grid" );
 	unsigned int depth = 0;
 	while( (1u<<depth)<res ) depth++;
-	if( res!=(1<<depth) ) ERROR_OUT( "Resolution is not a power of two: " , res );
+	if( res!=(1<<depth) ) MK_ERROR_OUT( "Resolution is not a power of two: " , res );
 
 	std::vector< RegularGrid< Dim , DataType > > gs( ThreadPool::NumThreads() );
 	std::vector< Splatter > splatters;
@@ -557,7 +557,7 @@ DataType TreeSplatter< Dim , DataType >::operator()( Point< double , Dim > p , u
 	ConstNeighborKey< KernelRadius > &nKey = const_cast< ConstNeighborKey< KernelRadius >& >( _nKeys[thread] );
 	{
 		const Node *n = _spaceRoot->getLeafNode( p );
-		if( !n || n->depth()<(depth+1) ) ERROR_OUT( "Couldn't find node: " , p , " @ " , depth );
+		if( !n || n->depth()<(depth+1) ) MK_ERROR_OUT( "Couldn't find node: " , p , " @ " , depth );
 		nKey.getNeighbors( n );
 	}
 	typename ConstNeighborKey< KernelRadius >::NeighborType &neighbors = nKey.neighbors[depth+1];
@@ -766,7 +766,7 @@ TreeEstimator< Dim , CoDim >::TreeEstimator( unsigned int kernelRadius , unsigne
 	case 2: TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >::template addSamples< 2 >( _F , orderedSampler , DepthF , mergeSamples ) ; break;
 	case 3: TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >::template addSamples< 3 >( _F , orderedSampler , DepthF , mergeSamples ) ; break;
 	case 4: TreeSplatter< Dim , DensityAndNoiseInfo< Dim > >::template addSamples< 4 >( _F , orderedSampler , DepthF , mergeSamples ) ; break;
-	default: ERROR_OUT( "Only radii [0,4] supported: " , kernelRadius );
+	default: MK_ERROR_OUT( "Only radii [0,4] supported: " , kernelRadius );
 	}
 }
 
@@ -821,7 +821,7 @@ DensityAndNoiseInfo< Dim > TreeEstimator< Dim , CoDim >::operator()( Point< doub
 	ConstNeighborKey< 0 > &nKey = const_cast< ConstNeighborKey< 0 >& >( _nKeys[thread] );
 	{
 		const Node *n = _spaceRoot->getLeafNode( p );
-		if( !n || n->depth()!=nKey.depth() ) ERROR_OUT( "Couldn't find node: " , p );
+		if( !n || n->depth()!=nKey.depth() ) MK_ERROR_OUT( "Couldn't find node: " , p );
 		nKey.getNeighbors( n );
 	}
 	double depth = _depth( nKey , nKey.depth() , p );
@@ -855,8 +855,8 @@ double TreeEstimator< Dim , CoDim >::depth( Point< double , Dim > p , unsigned i
 {
 	ConstNeighborKey< 0 > &nKey = const_cast< ConstNeighborKey< 0 >& >( _nKeys[thread] );
 	const Node *n = _spaceRoot->getLeafNode( p );
-	if( !n ) ERROR_OUT( "Couldn't find node: " , p );
-//		if( !n || n->depth()!=nKey.depth() ) ERROR_OUT( "Couldn't find node: " , p );
+	if( !n ) MK_ERROR_OUT( "Couldn't find node: " , p );
+//		if( !n || n->depth()!=nKey.depth() ) MK_ERROR_OUT( "Couldn't find node: " , p );
 	nKey.getNeighbors( n );
 	return _depth( nKey , n->depth() , p ) - 1.;
 }

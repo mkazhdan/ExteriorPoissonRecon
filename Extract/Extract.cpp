@@ -88,7 +88,7 @@ Point< double , 3 > SurfaceColor( unsigned int idx )
 	{
 		case 0: return Point< double , 3 >( 223. , 41. , 53. );
 		case 1: return Point< double , 3 >( 55. , 114. , 255. );
-		default: ERROR_OUT( "Only two surfaces supported" );
+		default: MK_ERROR_OUT( "Only two surfaces supported" );
 	}
 	return Point< double , 3 >();
 }
@@ -351,15 +351,15 @@ int main( int argc , char* argv[] )
 	{
 		if     ( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalRegularIndexer< 3 > ).hash_code() ) return Execute< 3 , CoDim , Hat::HierarchicalRegularIndexer< 3 > >();
 		else if( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalAdaptedIndexer< 3 > ).hash_code() ) return Execute< 3 , CoDim , Hat::HierarchicalAdaptedIndexer< 3 > >();
-		else ERROR_OUT( "Unrecognized hierarchical indexer hash: "  , hierarchicalIndexerHashCode );
+		else MK_ERROR_OUT( "Unrecognized hierarchical indexer hash: "  , hierarchicalIndexerHashCode );
 	}
 	else if( dim==4 )
 	{
 		if     ( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalRegularIndexer< 4 > ).hash_code() ) return Execute< 4 , CoDim , Hat::HierarchicalRegularIndexer< 4 > >();
 		else if( hierarchicalIndexerHashCode==typeid( Hat::HierarchicalAdaptedIndexer< 4 > ).hash_code() ) return Execute< 4 , CoDim , Hat::HierarchicalAdaptedIndexer< 4 > >();
-		else ERROR_OUT( "Unrecognized hierarchical indexer hash: "  , hierarchicalIndexerHashCode );
+		else MK_ERROR_OUT( "Unrecognized hierarchical indexer hash: "  , hierarchicalIndexerHashCode );
 	}
-	else ERROR_OUT( "Only dimensions 3 and 4 supported: " , dim );
+	else MK_ERROR_OUT( "Only dimensions 3 and 4 supported: " , dim );
 	return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
